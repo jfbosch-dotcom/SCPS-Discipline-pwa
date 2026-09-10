@@ -1,7 +1,8 @@
 {
   "name": "SCPS Discipline App",
   "short_name": "SCPS Discipline",
-  "description": "Sterkspruit Christian Private School Discipline System",
+  "description": "Sterkspruit Christian Private School Discipline System — v0.91",
+  "id": "./",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
