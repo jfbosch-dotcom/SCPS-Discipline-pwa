@@ -1,69 +1,1969 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#1f3b5b">
   <title>SCPS Discipline App</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="SCPS Discipline">
+
   <style>
-    :root{--navy:#1f3b5b;--light:#f4f6f8;--muted:#667784;--line:#d8e1e8;font-family:Arial,Helvetica,sans-serif}
-    *{box-sizing:border-box} html,body{margin:0;width:100%;height:100%;background:var(--light)} body{overflow:hidden;color:#20303c}
-    #landing{min-height:100%;display:flex;align-items:center;justify-content:center;padding:18px}
-    .card{width:min(520px,100%);background:#fff;border-radius:18px;padding:26px 20px;box-shadow:0 10px 30px rgba(31,59,91,.14);text-align:center}
-    .logo{width:96px;height:96px;object-fit:contain;margin-bottom:10px}
-    h1{color:var(--navy);font-size:26px;margin:4px 0 8px} p{color:var(--muted);line-height:1.45}
-    .btn{width:100%;border:0;border-radius:12px;padding:15px 18px;min-height:54px;font-size:17px;font-weight:700;cursor:pointer;margin-top:10px}
-    .primary{background:var(--navy);color:#fff}.secondary{background:#e8eef3;color:var(--navy)}
-    .note{margin-top:16px;padding:13px;background:#eef4f8;border-radius:12px;text-align:left;font-size:13px;color:#44525d;line-height:1.45}.version{margin-top:14px;color:var(--muted);font-size:12px}
-    #appShell{display:none;position:fixed;inset:0;background:var(--light)}
-    #loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;background:var(--light);color:var(--navy);font-weight:700;z-index:2}
-    #appFrame{width:100%;height:100%;border:0;display:block;background:#fff}
-    #errorBar{display:none;position:absolute;left:12px;right:12px;bottom:12px;z-index:5;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;box-shadow:0 6px 20px rgba(0,0,0,.12)}
-    #errorBar button{width:100%;border:0;background:var(--navy);color:#fff;border-radius:9px;padding:12px;font-weight:700}
+    :root{
+      --navy:#1f3b5b;
+      --blue:#2f6fa7;
+      --light:#eef4f8;
+      --line:#d8e1e8;
+      --text:#20303c;
+      --muted:#667784;
+      --danger:#a93434;
+      --success:#2d6a3f;
+      --warning:#936214;
+      --shadow:0 8px 24px rgba(31,59,91,.12);
+      font-family:Arial,Helvetica,sans-serif
+    }
+
+    *{box-sizing:border-box}
+    body{margin:0;background:#f5f7f9;color:var(--text)}
+    button,input,select,textarea{font:inherit}
+    .hidden{display:none!important}
+
+    .app-header{
+      position:sticky;top:0;z-index:50;background:var(--navy);color:white;
+      min-height:72px;padding:8px 14px;display:flex;align-items:center;gap:12px;
+      box-shadow:0 2px 10px rgba(0,0,0,.15)
+    }
+
+    .app-header img{
+      width:54px;height:54px;object-fit:contain;background:white;
+      border-radius:8px;padding:3px
+    }
+
+    .header-title{flex:1;min-width:0}
+    .header-title h1{font-size:20px;line-height:1.1;margin:0}
+    .header-title p{font-size:12px;margin:4px 0 0;opacity:.85}
+
+    .home-btn{
+      border:0;background:white;color:var(--navy);font-weight:700;
+      border-radius:10px;padding:12px 15px;cursor:pointer
+    }
+
+    .wrap{max-width:920px;margin:0 auto;padding:20px}
+
+    .card{
+      background:white;border-radius:14px;box-shadow:var(--shadow);
+      padding:22px;margin-bottom:18px
+    }
+
+    .login-card{max-width:480px;margin:34px auto}
+
+    h2{margin:0 0 16px;color:var(--navy);font-size:24px}
+    h3{color:var(--navy);margin:20px 0 10px}
+    .muted{color:var(--muted)}
+
+    label{display:block;font-weight:700;margin:14px 0 6px}
+
+    input[type=email],
+    input[type=password],
+    input[type=text],
+    input[type=date],
+    select,
+    textarea{
+      width:100%;border:1px solid #bfcbd5;border-radius:10px;
+      padding:13px 14px;background:#fff;color:var(--text)
+    }
+
+    input[readonly]{background:#f2f4f6;color:#64717c}
+    textarea{min-height:120px;resize:vertical}
+
+    .check-row{display:flex;align-items:center;gap:10px;margin:16px 0}
+    .check-row input{width:20px;height:20px}
+    .check-row label{margin:0;font-weight:600}
+
+    .btn{
+      border:0;border-radius:10px;padding:13px 16px;font-weight:700;
+      cursor:pointer;background:var(--blue);color:white;min-height:48px
+    }
+
+    .btn.secondary{background:#e7edf2;color:var(--navy)}
+    .btn.danger{background:var(--danger)}
+    .btn.success{background:var(--success)}
+    .btn.warning{background:var(--warning)}
+    .btn.block{width:100%}
+    .btn:disabled{opacity:.55;cursor:not-allowed}
+
+    .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+
+    .home-grid{
+      display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px
+    }
+
+    .home-action{
+      min-height:92px;border:1px solid #d9e3eb;background:white;border-radius:14px;
+      padding:16px;text-align:left;cursor:pointer;
+      box-shadow:0 4px 14px rgba(31,59,91,.08)
+    }
+
+    .home-action strong{
+      display:block;color:var(--navy);font-size:18px;margin-bottom:5px
+    }
+
+    .home-action span{font-size:13px;color:var(--muted)}
+
+    .header-version{
+      display:inline-block;
+      margin-left:6px;
+      padding:3px 6px;
+      border-radius:999px;
+      background:rgba(255,255,255,.16);
+      color:white;
+      font-size:11px;
+      font-weight:700;
+      vertical-align:middle
+    }
+
+    .version-footer{
+      margin-top:16px;
+      text-align:center;
+      color:var(--muted);
+      font-size:12px
+    }
+
+    .class-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:12px
+    }
+
+    .class-btn{
+      width:100%;
+      aspect-ratio:1.65 / 1;
+      min-height:86px;
+      border:0;
+      border-radius:8px;
+      background:var(--navy);
+      color:white;
+      font-size:24px;
+      font-weight:700;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow:0 4px 12px rgba(31,59,91,.16)
+    }
+
+    .class-btn:active{transform:scale(.99)}
+
+    .list{display:grid;gap:10px}
+
+    .list-btn{
+      width:100%;text-align:left;border:1px solid var(--line);background:white;
+      border-radius:12px;padding:14px 15px;cursor:pointer
+    }
+
+    .list-btn strong{color:var(--navy)}
+
+    .crumbs{font-size:13px;color:var(--muted);margin-bottom:12px}
+
+    .notice{border-radius:10px;padding:12px 14px;margin:12px 0}
+    .notice.error{background:#fdeeee;color:#7d2424}
+    .notice.success{background:#eaf6ed;color:#245c34}
+    .notice.info{background:#edf5fb;color:#254e6f}
+
+    .learner-banner{
+      background:var(--light);border-left:5px solid var(--blue);
+      padding:14px;border-radius:10px;margin-bottom:15px
+    }
+
+    .learner-banner strong{font-size:18px;color:var(--navy)}
+
+    .filters{
+      display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:10px
+    }
+
+    .summary-box{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
+
+    .pill{
+      background:#edf3f7;border-radius:999px;padding:7px 11px;font-size:13px
+    }
+
+    .incident{
+      border:1px solid var(--line);border-radius:12px;padding:14px;
+      margin:10px 0;background:white
+    }
+
+    .incident-top{
+      display:flex;justify-content:space-between;gap:10px;align-items:flex-start
+    }
+
+    .incident-date{font-weight:700;color:var(--navy)}
+
+    .incident-category{
+      font-size:13px;background:#eef4f8;border-radius:999px;
+      padding:5px 8px;white-space:nowrap
+    }
+
+    .incident p{margin:10px 0 6px;white-space:pre-wrap}
+    .incident small{color:var(--muted)}
+
+    .search-input{margin-bottom:12px}
+
+    .spinner{
+      display:inline-block;width:18px;height:18px;border:3px solid #cdd7df;
+      border-top-color:var(--blue);border-radius:50%;
+      animation:spin .8s linear infinite;vertical-align:middle;margin-right:8px
+    }
+
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    .role-badge{
+      display:inline-block;margin-top:5px;background:#e8eef3;color:var(--navy);
+      padding:5px 9px;border-radius:999px;font-size:12px;font-weight:700
+    }
+
+    .user-card{
+      border:1px solid var(--line);border-radius:12px;padding:14px;
+      background:white;cursor:pointer
+    }
+
+    .user-card-top{
+      display:flex;justify-content:space-between;align-items:flex-start;
+      gap:10px
+    }
+
+    .user-name{font-weight:700;color:var(--navy);font-size:17px}
+    .user-meta{font-size:13px;color:var(--muted);margin-top:4px}
+
+    .status{
+      font-size:12px;font-weight:700;border-radius:999px;padding:5px 8px;
+      white-space:nowrap
+    }
+
+    .status.active{background:#eaf6ed;color:#245c34}
+    .status.inactive{background:#f1f2f3;color:#69737b}
+
+    .admin-grid{
+      display:grid;grid-template-columns:1fr 1fr;gap:12px
+    }
+
+    .section-line{
+      border:0;border-top:1px solid var(--line);margin:22px 0
+    }
+
+    @media(max-width:600px){
+      .app-header{min-height:60px;padding:6px 9px}
+      .app-header img{width:44px;height:44px}
+      .header-title h1{font-size:16px}
+      .header-title p{display:none}
+      .home-btn{padding:11px 12px;font-size:15px}
+      .wrap{padding:12px}
+      .card{padding:17px;border-radius:12px}
+      .login-card{margin:18px auto}
+      h2{font-size:21px}
+
+      input[type=email],
+      input[type=password],
+      input[type=text],
+      input[type=date],
+      select,
+      textarea{
+        font-size:16px;padding:15px
+      }
+
+      .btn{min-height:54px;font-size:16px;padding:14px 17px}
+      .home-grid{grid-template-columns:1fr}
+      .home-action{min-height:86px;padding:17px}
+      .class-grid{gap:10px}
+      .class-btn{min-height:78px;font-size:23px;border-radius:7px}
+      .list-btn{padding:16px;font-size:16px;min-height:58px}
+      .filters{grid-template-columns:1fr}
+      .admin-grid{grid-template-columns:1fr}
+    }
+
+
+    .install-screen{
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+    }
+
+    .install-card{
+      width:min(520px,100%);
+      background:white;
+      border-radius:18px;
+      padding:26px 20px;
+      box-shadow:var(--shadow);
+      text-align:center;
+    }
+
+    .install-card img{
+      width:100px;
+      height:100px;
+      object-fit:contain;
+      margin-bottom:10px;
+    }
+
+    .install-card p{
+      color:var(--muted);
+      line-height:1.45;
+    }
+
+    .install-note{
+      margin-top:16px;
+      padding:13px;
+      border-radius:12px;
+      background:#eef4f8;
+      text-align:left;
+      font-size:13px;
+      color:#44525d;
+      line-height:1.45;
+    }
+
+    @media print{
+      .app-header,.no-print,.btn-row,.filters{display:none!important}
+      body{background:white}
+      .wrap{max-width:none;padding:0}
+      .card{box-shadow:none;padding:0}
+      .incident{break-inside:avoid}
+    }
   </style>
 </head>
+
 <body>
-<div id="landing">
-  <div class="card">
-    <img class="logo" src="icon-192.png" alt="SCPS logo">
-    <h1>SCPS Discipline App</h1>
-    <p>Tap below to open the app.</p>
-    <button id="openBtn" class="btn primary">Open SCPS Discipline App</button>
-    <button id="browserBtn" class="btn secondary">Continue in Browser</button>
-    <div class="note"><strong>iPhone:</strong> Install from Safari using <strong>Share → Add to Home Screen</strong>. When opening the installed app, tap <strong>Open SCPS Discipline App</strong>.</div>
-    <div class="version">SCPS Discipline App · v0.91</div>
-  </div>
-</div>
-<div id="appShell">
-  <div id="loading">Opening SCPS Discipline App…</div>
-  <div id="errorBar"><button id="retryBtn">Retry App</button></div>
-</div>
+
+  <section id="installLanding" class="install-screen hidden">
+    <div class="install-card">
+      <img src="icon-192.png" alt="SCPS logo">
+      <h2>SCPS Discipline App</h2>
+      <p>Install the app on your phone for quick access, or continue in your browser.</p>
+
+      <button id="installAppBtn" class="btn block" type="button">
+        Install SCPS Discipline App
+      </button>
+
+      <button id="continueBrowserBtn" class="btn secondary block" type="button" style="margin-top:10px">
+        Continue in Browser
+      </button>
+
+      <div id="installHelp" class="install-note">
+        <strong>Android:</strong> Tap the install button above, then confirm Install.<br><br>
+        <strong>iPhone:</strong> Open this page in Safari, tap <strong>Share</strong>, then choose
+        <strong>Add to Home Screen</strong>.
+      </div>
+
+      <div class="version-footer">SCPS Discipline App · v0.92</div>
+    </div>
+  </section>
+
+  <header id="appHeader" class="app-header hidden">
+    <img src="icon-192.png" alt="SCPS logo">
+
+    <div class="header-title">
+      <h1>SCPS Discipline App <span class="header-version">v0.92</span></h1>
+      <p>Sterkspruit Christian Private School</p>
+    </div>
+
+    <button class="home-btn" onclick="showHome()">🏠 Home</button>
+  </header>
+
+  <main class="wrap">
+    <section id="loginView" class="card login-card">
+      <div style="text-align:center;margin-bottom:16px">
+        <img
+          src="icon-192.png"
+          alt="SCPS logo"
+          style="width:92px;height:92px;object-fit:contain"
+        >
+      </div>
+
+      <h2 style="text-align:center">SCPS Discipline App</h2>
+
+      <p class="muted" style="text-align:center">
+        Sign in with the email address and PIN issued for this app.
+      </p>
+
+      <div id="loginNotice"></div>
+
+      <label for="email">Email address</label>
+      <input id="email" type="email" autocomplete="username" placeholder="name@example.com">
+
+      <label for="pin">PIN</label>
+      <input id="pin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="PIN">
+
+      <div class="check-row">
+        <input id="rememberMe" type="checkbox">
+        <label for="rememberMe">Keep me signed in on this device</label>
+      </div>
+
+      <button id="loginBtn" class="btn block" onclick="login()">Sign In</button>
+
+      <p class="muted" style="font-size:12px;margin-top:14px">
+        Only use “Keep me signed in” on a private device that you control.
+      </p>
+
+      <div class="version-footer">SCPS Discipline App · v0.92</div>
+    </section>
+
+    <section id="appView" class="hidden"></section>
+  </main>
+
 <script>
-  const APP_URL='https://script.google.com/macros/s/AKfycbzy-vzBco0LJpzhniHpaU1G1DiRXf-KRbmdvN69gdwkTe7aSzoZQZN4Xt4f8st7q01REA/exec';
-  const landing=document.getElementById('landing'); const appShell=document.getElementById('appShell'); const loading=document.getElementById('loading'); const errorBar=document.getElementById('errorBar');
-  const openBtn=document.getElementById('openBtn'); const browserBtn=document.getElementById('browserBtn'); const retryBtn=document.getElementById('retryBtn');
-  const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent); const isStandalone=window.matchMedia('(display-mode: standalone)').matches || navigator.standalone===true; let loadTimer=null;
-  function createAppFrame(){
-    const old=document.getElementById('appFrame'); if(old) old.remove();
-    const frame=document.createElement('iframe'); frame.id='appFrame'; frame.title='SCPS Discipline App'; frame.src=APP_URL+'?pwa=1&t='+Date.now();
-    frame.setAttribute('allow','storage-access *; clipboard-read *; clipboard-write *');
-    frame.setAttribute('sandbox','allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation allow-storage-access-by-user-activation');
-    frame.addEventListener('load',function(){loading.style.display='none'; clearTimeout(loadTimer);});
-    appShell.appendChild(frame); clearTimeout(loadTimer); loadTimer=setTimeout(function(){loading.style.display='none'; errorBar.style.display='block';},12000);
+  const APP_VERSION = 'v0.92';
+
+  let sessionToken = '';
+  let rememberedToken = '';
+  let currentTeacher = null;
+  let learners = [];
+  let categories = [];
+
+  let currentMode = '';
+  let selectedGrade = '';
+  let selectedClass = '';
+  let selectedLearner = null;
+  let currentHistory = null;
+
+  let adminUsers = [];
+  let adminClasses = [];
+  let selectedAdminUser = null;
+
+  let navScreens = [];
+  let navigationReady = false;
+  let restoringFromBack = false;
+
+  const REMEMBER_STORAGE_KEY = 'scpsDisciplineRememberToken';
+
+  const API_URL = 'https://scps-discipline-api.jfbosch3.workers.dev/api';
+
+  let deferredInstallPrompt = null;
+
+  async function apiCall(action, data) {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        action: action,
+        data: data || {}
+      })
+    });
+
+    const payload = await response.json();
+
+    if (!response.ok || !payload.ok) {
+      throw new Error(
+        payload && payload.error
+          ? payload.error
+          : 'The SCPS server could not complete the request.'
+      );
+    }
+
+    return payload.result;
   }
-  function openEmbeddedApp(){landing.style.display='none'; appShell.style.display='block'; loading.style.display='flex'; errorBar.style.display='none'; createAppFrame();}
-  openBtn.addEventListener('click',openEmbeddedApp);
-  retryBtn.addEventListener('click',function(){loading.style.display='flex'; errorBar.style.display='none'; createAppFrame();});
-  browserBtn.addEventListener('click',function(){window.location.href=APP_URL;});
-  if(isStandalone && !isIOS){openEmbeddedApp();}
-  if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./service-worker.js').catch(function(err){console.error('Service worker registration failed:',err);});});}
+
+  function isIOSDevice() {
+    return /iphone|ipad|ipod/i.test(navigator.userAgent);
+  }
+
+  function isStandaloneApp() {
+    return (
+      window.matchMedia('(display-mode: standalone)').matches ||
+      navigator.standalone === true
+    );
+  }
+
+  function showInstallLandingIfNeeded() {
+    if (isStandaloneApp()) return false;
+
+    document.getElementById('installLanding').classList.remove('hidden');
+    document.getElementById('loginView').classList.add('hidden');
+
+    const installButton = document.getElementById('installAppBtn');
+    const help = document.getElementById('installHelp');
+
+    if (isIOSDevice()) {
+      installButton.textContent = 'How to Install on iPhone';
+      installButton.onclick = function() {
+        help.innerHTML =
+          '<strong>iPhone:</strong> In Safari, tap <strong>Share</strong>, then choose <strong>Add to Home Screen</strong>.';
+        help.scrollIntoView({behavior:'smooth', block:'center'});
+      };
+    }
+
+    return true;
+  }
+
+  function continueInBrowser() {
+    document.getElementById('installLanding').classList.add('hidden');
+    document.getElementById('loginView').classList.remove('hidden');
+  }
+
+  window.addEventListener('beforeinstallprompt', function(event) {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+
+    const button = document.getElementById('installAppBtn');
+    if (button && !isIOSDevice()) {
+      button.disabled = false;
+      button.textContent = 'Install SCPS Discipline App';
+      button.onclick = async function() {
+        if (!deferredInstallPrompt) return;
+        deferredInstallPrompt.prompt();
+        try {
+          await deferredInstallPrompt.userChoice;
+        } finally {
+          deferredInstallPrompt = null;
+        }
+      };
+    }
+  });
+
+  window.addEventListener('appinstalled', function() {
+    deferredInstallPrompt = null;
+    document.getElementById('installLanding').classList.add('hidden');
+    document.getElementById('loginView').classList.remove('hidden');
+  });
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker
+        .register('./service-worker.js')
+        .catch(function(err) {
+          console.error('Service worker registration failed:', err);
+        });
+    });
+  }
+
+
+  /* =========================================================
+     STARTUP / BACK BUTTON
+  ========================================================= */
+
+  document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('continueBrowserBtn').addEventListener('click', continueInBrowser);
+
+    const showingInstallLanding = showInstallLandingIfNeeded();
+
+    rememberedToken = localStorage.getItem(REMEMBER_STORAGE_KEY) || '';
+
+    if (showingInstallLanding) {
+      return;
+    }
+
+    if (rememberedToken) {
+      setLoginNotice('<span class="spinner"></span>Checking saved sign-in…', 'info');
+
+      apiCall('resumeRememberedLogin', {
+        rememberToken: rememberedToken
+      })
+      .then(function(result) {
+        if (result && result.success) {
+          sessionToken = result.sessionToken;
+          currentTeacher = result.teacher;
+          loadAppData();
+        } else {
+          clearRememberedToken();
+          setLoginNotice('', '');
+        }
+      })
+      .catch(function() {
+        clearRememberedToken();
+        setLoginNotice('', '');
+      });
+    }
+  });
+
+  window.addEventListener('popstate', function() {
+    if (!currentTeacher || !navigationReady) return;
+
+    if (navScreens.length) {
+      const previousScreen = navScreens.pop();
+      restoreScreen(previousScreen);
+    }
+  });
+
+  /* =========================================================
+     LOGIN
+  ========================================================= */
+
+  function login() {
+    const email = document.getElementById('email').value.trim();
+    const pin = document.getElementById('pin').value.trim();
+    const remember = document.getElementById('rememberMe').checked;
+
+    if (!email || !pin) {
+      setLoginNotice('Please enter your email address and PIN.', 'error');
+      return;
+    }
+
+    const btn = document.getElementById('loginBtn');
+    btn.disabled = true;
+    btn.textContent = 'Signing in…';
+    setLoginNotice('', '');
+
+    apiCall('loginUser', {
+      email: email,
+      pin: pin,
+      rememberDevice: remember
+    })
+    .then(function(result) {
+      btn.disabled = false;
+      btn.textContent = 'Sign In';
+
+      sessionToken = result.sessionToken;
+      currentTeacher = result.teacher;
+
+      if (result.rememberToken) {
+        rememberedToken = result.rememberToken;
+        localStorage.setItem(REMEMBER_STORAGE_KEY, rememberedToken);
+      } else if (!remember) {
+        clearRememberedToken();
+      }
+
+      document.getElementById('pin').value = '';
+      loadAppData();
+    })
+    .catch(function(error) {
+      btn.disabled = false;
+      btn.textContent = 'Sign In';
+      setLoginNotice(errorMessage(error), 'error');
+    });
+  }
+
+  function loadAppData() {
+    apiCall('getAppData', {
+      sessionToken: sessionToken
+    })
+    .then(function(data) {
+      currentTeacher = data.teacher;
+      learners = data.learners || [];
+      categories = data.categories || [];
+
+      document.getElementById('loginView').classList.add('hidden');
+      document.getElementById('appHeader').classList.remove('hidden');
+      document.getElementById('appView').classList.remove('hidden');
+
+      navScreens = [];
+      navigationReady = false;
+
+      history.replaceState({scpsApp:true,root:true}, '');
+
+      showHome();
+      navigationReady = true;
+    })
+    .catch(handleServerFailure);
+  }
+
+  function signOut() {
+    const tokenToRevoke = rememberedToken;
+    const sessionToRevoke = sessionToken;
+
+    sessionToken = '';
+    currentTeacher = null;
+    learners = [];
+    categories = [];
+    adminUsers = [];
+    adminClasses = [];
+
+    clearRememberedToken();
+
+    navScreens = [];
+    navigationReady = false;
+
+    history.replaceState({scpsLogin:true}, '');
+
+    document.getElementById('appHeader').classList.add('hidden');
+    document.getElementById('appView').classList.add('hidden');
+    document.getElementById('loginView').classList.remove('hidden');
+
+    setLoginNotice('You have been signed out.', 'success');
+
+    apiCall('logoutUser', {
+      sessionToken: sessionToRevoke,
+      rememberToken: tokenToRevoke
+    }).catch(function(){});
+  }
+
+  /* =========================================================
+     HOME
+  ========================================================= */
+
+  function showHome() {
+    if (!currentTeacher) return;
+
+    currentMode = '';
+    selectedGrade = '';
+    selectedClass = '';
+    selectedLearner = null;
+    currentHistory = null;
+    selectedAdminUser = null;
+
+    const role = normalRole(currentTeacher.role);
+
+    let actions = `
+      <button class="home-action" onclick="startRecordIncident()">
+        <strong>Record Incident</strong>
+        <span>Select a learner and record a new discipline incident.</span>
+      </button>
+
+      <button class="home-action" onclick="startGlobalLearnerSearch(false)">
+        <strong>Search Learner</strong>
+        <span>Find a learner by name, surname or class.</span>
+      </button>
+    `;
+
+    if (
+      currentTeacher.registerClass &&
+      (role === 'RegisterTeacher' || role === 'HOD' || role === 'Admin')
+    ) {
+      actions += `
+        <button class="home-action" onclick="showMyClassHistory()">
+          <strong>My Class History</strong>
+          <span>View discipline history for learners in ${escapeHtml(currentTeacher.registerClass)}.</span>
+        </button>
+      `;
+    }
+
+    if (role === 'Admin' || role === 'HOD') {
+      actions += `
+        <button class="home-action" onclick="startHistoryBrowse()">
+          <strong>Learner History</strong>
+          <span>Browse grades and classes to view learner histories.</span>
+        </button>
+
+        <button class="home-action" onclick="startGlobalLearnerSearch(true)">
+          <strong>Search History</strong>
+          <span>Search for any learner and open their discipline history.</span>
+        </button>
+      `;
+    }
+
+    if (role === 'Admin') {
+      actions += `
+        <button class="home-action" onclick="openManageUsers()">
+          <strong>Manage Users</strong>
+          <span>Add users, assign roles, reset PINs and activate or deactivate accounts.</span>
+        </button>
+      `;
+    }
+
+    render(`
+      <div class="card">
+        <h2>Welcome, ${escapeHtml(currentTeacher.name)}</h2>
+
+        <div class="role-badge">${escapeHtml(displayRole(role))}</div>
+
+        <p class="muted">${escapeHtml(currentTeacher.email)} · v0.92</p>
+
+        <div class="home-grid">
+          ${actions}
+        </div>
+
+        <div class="btn-row">
+          <button class="btn danger" onclick="signOut()">Sign Out</button>
+        </div>
+      </div>
+    `);
+  }
+
+  /* =========================================================
+     ADMIN USER MANAGEMENT
+  ========================================================= */
+
+  function openManageUsers() {
+    render(`
+      <div class="card">
+        <div class="crumbs">Admin</div>
+        <h2>Manage Users</h2>
+        <p><span class="spinner"></span>Loading users…</p>
+      </div>
+    `);
+
+    apiCall('getAdminUsers', {
+      sessionToken: sessionToken
+    })
+    .then(function(data) {
+      adminUsers = data.users || [];
+      adminClasses = data.classes || [];
+      renderAdminUserList();
+    })
+    .catch(handleServerFailure);
+  }
+
+  function renderAdminUserList() {
+    const rows = adminUsers.map(function(u) {
+      const roleText = displayRole(u.role);
+      const classText = u.role === 'RegisterTeacher' && u.registerClass
+        ? ' · ' + escapeHtml(u.registerClass)
+        : '';
+
+      return `
+        <button class="user-card" onclick="editAdminUser('${jsString(u.teacherID)}')">
+          <div class="user-card-top">
+            <div>
+              <div class="user-name">${escapeHtml(u.name || u.email)}</div>
+              <div class="user-meta">
+                ${escapeHtml(roleText)}${classText}<br>
+                ${escapeHtml(u.email)}
+              </div>
+            </div>
+
+            <span class="status ${u.active ? 'active' : 'inactive'}">
+              ${u.active ? 'Active' : 'Inactive'}
+            </span>
+          </div>
+        </button>
+      `;
+    }).join('');
+
+    render(`
+      <div class="card">
+        <div class="crumbs">Admin</div>
+        <h2>Manage Users</h2>
+
+        <div class="btn-row">
+          <button class="btn success" onclick="showAddAdminUser()">+ Add User</button>
+          <button class="btn secondary" onclick="showHome()">Home</button>
+        </div>
+
+        <label for="adminUserSearch">Search users</label>
+        <input
+          id="adminUserSearch"
+          type="text"
+          placeholder="Name, email, role or class…"
+          oninput="filterAdminUsers(this.value)"
+        >
+
+        <div id="adminUserList" class="list" style="margin-top:14px">
+          ${rows || '<p class="muted">No users found.</p>'}
+        </div>
+      </div>
+    `);
+  }
+
+  function filterAdminUsers(term) {
+    const q = String(term || '').trim().toLowerCase();
+
+    document.querySelectorAll('#adminUserList .user-card').forEach(function(btn) {
+      btn.style.display = btn.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+  }
+
+  function showAddAdminUser() {
+    selectedAdminUser = null;
+
+    renderAdminUserForm({
+      teacherID: '',
+      name: '',
+      email: '',
+      role: 'Teacher',
+      registerClass: '',
+      active: true
+    }, true);
+  }
+
+  function editAdminUser(teacherID) {
+    const user = adminUsers.find(function(u) {
+      return u.teacherID === teacherID;
+    });
+
+    if (!user) return;
+
+    selectedAdminUser = user;
+    renderAdminUserForm(user, false);
+  }
+
+  function renderAdminUserForm(user, isNew) {
+    const role = normalRole(user.role || 'Teacher');
+    const classOptions = adminClasses.map(function(c) {
+      return `
+        <option value="${escapeAttr(c)}" ${String(user.registerClass || '') === c ? 'selected' : ''}>
+          ${escapeHtml(c)}
+        </option>
+      `;
+    }).join('');
+
+    render(`
+      <div class="card">
+        <div class="crumbs">Admin · Manage Users</div>
+
+        <h2>${isNew ? 'Add User' : 'Edit User'}</h2>
+
+        <div id="adminUserNotice"></div>
+
+        ${!isNew ? `
+          <div class="notice info">
+            Existing email addresses are locked because old incident records use the email address to identify the recording teacher.
+          </div>
+        ` : ''}
+
+        <label for="adminName">Name</label>
+        <input
+          id="adminName"
+          type="text"
+          value="${escapeAttr(user.name || '')}"
+          placeholder="e.g. Mrs N Cox"
+        >
+
+        <label for="adminEmail">Email address</label>
+        <input
+          id="adminEmail"
+          type="email"
+          value="${escapeAttr(user.email || '')}"
+          placeholder="name@example.com"
+          ${isNew ? '' : 'readonly'}
+        >
+
+        ${isNew ? `
+          <label for="adminPin">PIN</label>
+          <input
+            id="adminPin"
+            type="password"
+            inputmode="numeric"
+            placeholder="At least 4 characters"
+          >
+        ` : ''}
+
+        <div class="admin-grid">
+          <div>
+            <label for="adminRole">Role</label>
+            <select id="adminRole" onchange="updateRegisterClassVisibility()">
+              ${roleOption('Teacher', role)}
+              ${roleOption('StudentCouncil', role)}
+              ${roleOption('RegisterTeacher', role)}
+              ${roleOption('HOD', role)}
+              ${roleOption('Admin', role)}
+            </select>
+          </div>
+
+          <div id="registerClassWrap">
+            <label for="adminRegisterClass">Register Class</label>
+            <select id="adminRegisterClass">
+              <option value="">Select class…</option>
+              ${classOptions}
+            </select>
+          </div>
+        </div>
+
+        <div class="check-row">
+          <input id="adminActive" type="checkbox" ${user.active !== false ? 'checked' : ''}>
+          <label for="adminActive">Account active</label>
+        </div>
+
+        <div class="btn-row">
+          <button id="adminSaveBtn" class="btn success" onclick="saveAdminUserForm('${isNew ? 'new' : 'edit'}')">
+            ${isNew ? 'Add User' : 'Save Changes'}
+          </button>
+
+          <button class="btn secondary" onclick="appBack()">Back</button>
+        </div>
+
+        ${!isNew ? `
+          <hr class="section-line">
+
+          <h3>PIN</h3>
+          <p class="muted">
+            The current PIN cannot be viewed. You can replace it with a new one.
+          </p>
+
+          <div class="admin-grid">
+            <div>
+              <label for="adminNewPin">New PIN</label>
+              <input
+                id="adminNewPin"
+                type="password"
+                inputmode="numeric"
+                placeholder="At least 4 characters"
+              >
+            </div>
+          </div>
+
+          <div class="btn-row">
+            <button class="btn warning" onclick="resetSelectedUserPin()">
+              Reset PIN
+            </button>
+          </div>
+
+          <hr class="section-line">
+
+          <h3>Account Access</h3>
+          <p class="muted">
+            Deactivate an account instead of deleting it. Historical incidents remain linked to the teacher.
+          </p>
+
+          <div class="btn-row">
+            <button
+              class="btn ${user.active ? 'danger' : 'success'}"
+              onclick="toggleSelectedUserActive(${user.active ? 'false' : 'true'})"
+              ${user.isCurrentUser && user.active ? 'disabled' : ''}
+            >
+              ${user.active ? 'Deactivate User' : 'Activate User'}
+            </button>
+          </div>
+        ` : ''}
+      </div>
+    `);
+
+    updateRegisterClassVisibility();
+  }
+
+  function roleOption(value, selectedRole) {
+    return `
+      <option value="${value}" ${value === selectedRole ? 'selected' : ''}>
+        ${escapeHtml(displayRole(value))}
+      </option>
+    `;
+  }
+
+  function updateRegisterClassVisibility() {
+    const roleSelect = document.getElementById('adminRole');
+    const wrap = document.getElementById('registerClassWrap');
+
+    if (!roleSelect || !wrap) return;
+
+    wrap.classList.toggle('hidden', roleSelect.value !== 'RegisterTeacher');
+  }
+
+  function saveAdminUserForm(mode) {
+    const isNew = mode === 'new';
+
+    const payload = {
+      teacherID: isNew ? '' : (selectedAdminUser ? selectedAdminUser.teacherID : ''),
+      name: document.getElementById('adminName').value.trim(),
+      email: document.getElementById('adminEmail').value.trim(),
+      pin: isNew ? document.getElementById('adminPin').value.trim() : '',
+      role: document.getElementById('adminRole').value,
+      registerClass: document.getElementById('adminRegisterClass')
+        ? document.getElementById('adminRegisterClass').value
+        : '',
+      active: document.getElementById('adminActive').checked
+    };
+
+    const btn = document.getElementById('adminSaveBtn');
+    btn.disabled = true;
+    btn.textContent = isNew ? 'Adding…' : 'Saving…';
+
+    apiCall('saveAdminUser', {
+      sessionToken: sessionToken,
+      userData: payload
+    })
+    .then(function(result) {
+      showAdminNotice(result.message || 'Saved successfully.', 'success');
+
+      setTimeout(function() {
+        openManageUsers();
+      }, 500);
+    })
+    .catch(function(error) {
+      btn.disabled = false;
+      btn.textContent = isNew ? 'Add User' : 'Save Changes';
+      showAdminNotice(errorMessage(error), 'error');
+      maybeHandleExpired(error);
+    });
+  }
+
+  function resetSelectedUserPin() {
+    if (!selectedAdminUser) return;
+
+    const newPin = document.getElementById('adminNewPin').value.trim();
+
+    if (!newPin) {
+      showAdminNotice('Please enter the new PIN first.', 'error');
+      return;
+    }
+
+    if (!confirm('Reset the PIN for ' + selectedAdminUser.name + '?')) {
+      return;
+    }
+
+    apiCall('resetAdminUserPin', {
+      sessionToken: sessionToken,
+      teacherID: selectedAdminUser.teacherID,
+      newPin: newPin
+    })
+    .then(function(result) {
+      document.getElementById('adminNewPin').value = '';
+      showAdminNotice(result.message || 'PIN reset successfully.', 'success');
+    })
+    .catch(function(error) {
+      showAdminNotice(errorMessage(error), 'error');
+      maybeHandleExpired(error);
+    });
+  }
+
+  function toggleSelectedUserActive(makeActive) {
+    if (!selectedAdminUser) return;
+
+    const action = makeActive ? 'activate' : 'deactivate';
+
+    if (!confirm(
+      (makeActive ? 'Activate ' : 'Deactivate ') +
+      selectedAdminUser.name +
+      '?'
+    )) {
+      return;
+    }
+
+    apiCall('setAdminUserActive', {
+      sessionToken: sessionToken,
+      teacherID: selectedAdminUser.teacherID,
+      active: makeActive
+    })
+    .then(function(result) {
+      showAdminNotice(result.message || ('User ' + action + 'd.'), 'success');
+
+      setTimeout(function() {
+        openManageUsers();
+      }, 500);
+    })
+    .catch(function(error) {
+      showAdminNotice(errorMessage(error), 'error');
+      maybeHandleExpired(error);
+    });
+  }
+
+  function showAdminNotice(message, type) {
+    const box = document.getElementById('adminUserNotice');
+
+    if (box) {
+      box.innerHTML = `<div class="notice ${type || 'info'}">${escapeHtml(message)}</div>`;
+      window.scrollTo({top:0, behavior:'smooth'});
+    }
+  }
+
+  /* =========================================================
+     RECORD / HISTORY NAVIGATION
+  ========================================================= */
+
+  function startRecordIncident() {
+    currentMode = 'record';
+    showClassSelection();
+  }
+
+  function startHistoryBrowse() {
+    currentMode = 'history';
+    showClassSelection();
+  }
+
+  function showClassSelection() {
+    const classes = [...new Set(
+      learners
+        .map(function(x) { return x.className; })
+        .filter(Boolean)
+    )].sort(function(a, b) {
+      return a.localeCompare(
+        b,
+        undefined,
+        {numeric:true, sensitivity:'base'}
+      );
+    });
+
+    const items = classes.map(function(c) {
+      return `
+        <button
+          class="class-btn"
+          onclick="chooseClass('${jsString(c)}')"
+          aria-label="Select class ${escapeAttr(c)}"
+        >
+          ${escapeHtml(c)}
+        </button>
+      `;
+    }).join('');
+
+    render(`
+      <div class="card">
+        <div class="crumbs">
+          ${currentMode === 'history' ? 'Learner History' : 'Record Incident'}
+        </div>
+
+        <h2>Select Class</h2>
+
+        <div class="class-grid">
+          ${items || '<p class="muted">No classes found.</p>'}
+        </div>
+
+        <div class="btn-row no-print">
+          <button class="btn secondary" onclick="appBack()">Back</button>
+        </div>
+      </div>
+    `);
+  }
+
+  function chooseClass(className) {
+    selectedClass = className;
+
+    const classLearners = learners.filter(function(x) {
+      return x.className === className;
+    });
+
+    selectedGrade = classLearners.length ? classLearners[0].grade : '';
+
+    showLearnerList(classLearners, 'Class ' + className);
+  }
+
+  function showLearnerList(list, title) {
+    const sorted = [...list].sort(function(a,b) {
+      return (a.surname + '|' + a.name).localeCompare(b.surname + '|' + b.name);
+    });
+
+    const items = sorted.map(function(l) {
+      return `
+        <button class="list-btn" onclick="selectLearner('${jsString(l.learnerID)}')">
+          <strong>${escapeHtml(l.surname)}, ${escapeHtml(l.name)}</strong><br>
+          <span class="muted">${escapeHtml(l.className)}</span>
+        </button>
+      `;
+    }).join('');
+
+    render(`
+      <div class="card">
+        <div class="crumbs">${escapeHtml(title || '')}</div>
+
+        <h2>Select Learner</h2>
+
+        <input
+          id="classSearch"
+          class="search-input"
+          type="text"
+          placeholder="Search this list…"
+          oninput="filterLearnerButtons(this.value)"
+        >
+
+        <div id="learnerList" class="list">
+          ${items || '<p class="muted">No learners found.</p>'}
+        </div>
+
+        <div class="btn-row no-print">
+          <button class="btn secondary" onclick="appBack()">Back</button>
+        </div>
+      </div>
+    `);
+  }
+
+  function filterLearnerButtons(term) {
+    const q = String(term || '').toLowerCase();
+
+    document.querySelectorAll('#learnerList .list-btn').forEach(function(btn) {
+      btn.style.display = btn.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+  }
+
+  function selectLearner(learnerID) {
+    selectedLearner = learners.find(function(x) {
+      return x.learnerID === learnerID;
+    });
+
+    if (!selectedLearner) return;
+
+    if (currentMode === 'history') {
+      openHistory(selectedLearner.learnerID);
+    } else {
+      showIncidentForm(selectedLearner);
+    }
+  }
+
+  function startGlobalLearnerSearch(forHistory) {
+    currentMode = forHistory ? 'history' : 'record';
+
+    render(`
+      <div class="card">
+        <div class="crumbs">
+          ${forHistory ? 'Search History' : 'Search Learner'}
+        </div>
+
+        <h2>
+          ${forHistory ? 'Search Learner History' : 'Search Learner'}
+        </h2>
+
+        <input
+          id="globalSearch"
+          type="text"
+          placeholder="Type a name, surname, learner ID or class…"
+          oninput="runGlobalSearch(this.value)"
+          autofocus
+        >
+
+        <div id="globalResults" class="list" style="margin-top:12px">
+          <p class="muted">Start typing to search.</p>
+        </div>
+      </div>
+    `);
+  }
+
+  function runGlobalSearch(term) {
+    const box = document.getElementById('globalResults');
+    const q = String(term || '').trim().toLowerCase();
+
+    if (q.length < 1) {
+      box.innerHTML = '<p class="muted">Start typing to search.</p>';
+      return;
+    }
+
+    const results = learners.filter(function(l) {
+      const haystack = [
+        l.learnerID,
+        l.surname,
+        l.name,
+        l.grade,
+        l.className
+      ].join(' ').toLowerCase();
+
+      return haystack.includes(q);
+    }).slice(0,50);
+
+    box.innerHTML = results.map(function(l) {
+      return `
+        <button class="list-btn" onclick="selectGlobalLearner('${jsString(l.learnerID)}')">
+          <strong>${escapeHtml(l.surname)}, ${escapeHtml(l.name)}</strong><br>
+          <span class="muted">${escapeHtml(l.className)} · ${escapeHtml(l.learnerID)}</span>
+        </button>
+      `;
+    }).join('') || '<p class="muted">No matching learners found.</p>';
+  }
+
+  function selectGlobalLearner(learnerID) {
+    selectedLearner = learners.find(function(x) {
+      return x.learnerID === learnerID;
+    });
+
+    if (!selectedLearner) return;
+
+    if (currentMode === 'history') {
+      openHistory(learnerID);
+    } else {
+      showIncidentForm(selectedLearner);
+    }
+  }
+
+  function showMyClassHistory() {
+    currentMode = 'history';
+
+    const cls = String(currentTeacher.registerClass || '').trim();
+
+    if (!cls) {
+      render(`
+        <div class="card">
+          <h2>My Class History</h2>
+
+          <div class="notice error">
+            No RegisterClass has been assigned to your account.
+          </div>
+        </div>
+      `);
+
+      return;
+    }
+
+    const list = learners.filter(function(x) {
+      return x.className === cls;
+    });
+
+    selectedGrade = list.length ? list[0].grade : '';
+    selectedClass = cls;
+
+    showLearnerList(list, 'My Class: ' + cls);
+  }
+
+  /* =========================================================
+     INCIDENT FORM
+  ========================================================= */
+
+  function showIncidentForm(learner) {
+    const today = localDateISO();
+
+    const categoryOptions = categories.map(function(c) {
+      return `
+        <option value="${escapeAttr(c)}">
+          ${escapeHtml(c)}
+        </option>
+      `;
+    }).join('');
+
+    const periods = [
+      'Before School',
+      'Period 1',
+      'Period 2',
+      'Period 3',
+      'Break',
+      'Period 4',
+      'Period 5',
+      'Period 6',
+      'Period 7',
+      'After School',
+      'Other'
+    ];
+
+    render(`
+      <div class="card">
+        <div class="learner-banner">
+          <strong>${escapeHtml(learner.surname)}, ${escapeHtml(learner.name)}</strong><br>
+          <span>${escapeHtml(learner.className)} · ${escapeHtml(learner.learnerID)}</span>
+        </div>
+
+        <h2>Record Incident</h2>
+
+        <div id="formNotice"></div>
+
+        <label for="dateOccurred">Date incident happened</label>
+        <input id="dateOccurred" type="date" value="${today}">
+
+        <label for="timeOccurred">Period / time</label>
+        <select id="timeOccurred">
+          <option value="">Select…</option>
+
+          ${periods.map(function(p) {
+            return `
+              <option value="${escapeAttr(p)}">${escapeHtml(p)}</option>
+            `;
+          }).join('')}
+        </select>
+
+        <label for="category">Category</label>
+        <select id="category">
+          <option value="">Select…</option>
+          ${categoryOptions}
+        </select>
+
+        <label for="description">Description</label>
+        <textarea
+          id="description"
+          placeholder="Briefly describe what happened."
+        ></textarea>
+
+        <div class="btn-row">
+          <button
+            id="saveBtn"
+            class="btn success"
+            onclick="submitIncident()"
+          >
+            Submit Incident
+          </button>
+
+          <button class="btn secondary" onclick="appBack()">Back</button>
+        </div>
+      </div>
+    `);
+  }
+
+  function submitIncident() {
+    if (!selectedLearner) return;
+
+    const dateOccurred = document.getElementById('dateOccurred').value;
+    const timeOccurred = document.getElementById('timeOccurred').value;
+    const category = document.getElementById('category').value;
+    const description = document.getElementById('description').value.trim();
+
+    if (!dateOccurred || !timeOccurred || !category || !description) {
+      document.getElementById('formNotice').innerHTML =
+        '<div class="notice error">Please complete the date, period/time, category and description.</div>';
+      return;
+    }
+
+    const btn = document.getElementById('saveBtn');
+    btn.disabled = true;
+    btn.textContent = 'Submitting…';
+
+    apiCall('saveIncident', {
+      sessionToken: sessionToken,
+      learnerID: selectedLearner.learnerID,
+      learnerName: selectedLearner.surname + ', ' + selectedLearner.name,
+      grade: selectedLearner.grade,
+      className: selectedLearner.className,
+      category: category,
+      description: description,
+      dateOccurred: dateOccurred,
+      timeOccurred: timeOccurred
+    })
+    .then(function(result) {
+      render(`
+        <div class="card">
+          <div class="notice success">
+            <strong>Incident recorded successfully.</strong>
+          </div>
+
+          <p>
+            <strong>${escapeHtml(selectedLearner.surname)}, ${escapeHtml(selectedLearner.name)}</strong>
+          </p>
+
+          <p class="muted">
+            Reference: ${escapeHtml(result.incidentID || '')}
+          </p>
+
+          <div class="btn-row">
+            <button class="btn" onclick="showHome()">Return Home</button>
+
+            <button
+              class="btn secondary"
+              onclick="showIncidentForm(selectedLearner)"
+            >
+              Record Another for This Learner
+            </button>
+          </div>
+        </div>
+      `);
+    })
+    .catch(function(error) {
+      btn.disabled = false;
+      btn.textContent = 'Submit Incident';
+
+      document.getElementById('formNotice').innerHTML =
+        `<div class="notice error">${escapeHtml(errorMessage(error))}</div>`;
+
+      maybeHandleExpired(error);
+    });
+  }
+
+  /* =========================================================
+     HISTORY
+  ========================================================= */
+
+  function openHistory(learnerID) {
+    render(`
+      <div class="card">
+        <h2>Learner History</h2>
+
+        <p>
+          <span class="spinner"></span>
+          Loading history…
+        </p>
+      </div>
+    `);
+
+    apiCall('getLearnerHistory', {
+      sessionToken: sessionToken,
+      learnerID: learnerID
+    })
+    .then(function(data) {
+      currentHistory = data;
+      renderHistory();
+    })
+    .catch(handleServerFailure);
+  }
+
+  function renderHistory() {
+    if (!currentHistory) return;
+
+    const learner = currentHistory.learner;
+    const all = currentHistory.incidents || [];
+
+    const cats = [...new Set(
+      all.map(x => x.category).filter(Boolean)
+    )].sort();
+
+    const categoryOptions = cats.map(function(c) {
+      return `
+        <option value="${escapeAttr(c)}">${escapeHtml(c)}</option>
+      `;
+    }).join('');
+
+    render(`
+      <div class="card">
+        <div class="learner-banner">
+          <strong>${escapeHtml(learner.surname)}, ${escapeHtml(learner.name)}</strong><br>
+          <span>Class ${escapeHtml(learner.className)} · ${escapeHtml(learner.learnerID)}</span>
+        </div>
+
+        <h2>Learner Discipline History</h2>
+
+        <div class="filters no-print">
+          <div>
+            <label for="historyCategory">Category</label>
+            <select id="historyCategory" onchange="applyHistoryFilters()">
+              <option value="">All categories</option>
+              ${categoryOptions}
+            </select>
+          </div>
+
+          <div>
+            <label for="historyFrom">From Date</label>
+            <input id="historyFrom" type="date" onchange="applyHistoryFilters()">
+          </div>
+
+          <div>
+            <label for="historyTo">To Date</label>
+            <input id="historyTo" type="date" onchange="applyHistoryFilters()">
+          </div>
+        </div>
+
+        <div class="btn-row no-print">
+          <button class="btn secondary" onclick="clearHistoryFilters()">Clear Filters</button>
+          <button class="btn" onclick="window.print()">Print / Save as PDF</button>
+          <button class="btn secondary" onclick="appBack()">Back</button>
+        </div>
+
+        <div id="historySummary" class="summary-box"></div>
+        <div id="historyList"></div>
+      </div>
+    `, false);
+
+    applyHistoryFilters();
+  }
+
+  function applyHistoryFilters() {
+    const category = document.getElementById('historyCategory')?.value || '';
+    const from = document.getElementById('historyFrom')?.value || '';
+    const to = document.getElementById('historyTo')?.value || '';
+
+    const filtered = (currentHistory.incidents || []).filter(function(i) {
+      if (category && i.category !== category) return false;
+      if (from && i.dateOccurredISO && i.dateOccurredISO < from) return false;
+      if (to && i.dateOccurredISO && i.dateOccurredISO > to) return false;
+      return true;
+    });
+
+    const counts = {};
+
+    filtered.forEach(function(i) {
+      counts[i.category] = (counts[i.category] || 0) + 1;
+    });
+
+    document.getElementById('historySummary').innerHTML = `
+      <span class="pill">
+        <strong>${filtered.length}</strong>
+        incident${filtered.length === 1 ? '' : 's'}
+      </span>
+
+      ${Object.keys(counts).sort().map(function(c) {
+        return `
+          <span class="pill">
+            ${escapeHtml(c)}:
+            <strong>${counts[c]}</strong>
+          </span>
+        `;
+      }).join('')}
+    `;
+
+    document.getElementById('historyList').innerHTML =
+      filtered.length
+      ? filtered.map(function(i) {
+          return `
+            <div class="incident">
+              <div class="incident-top">
+                <div class="incident-date">
+                  ${escapeHtml(i.dateOccurred)} · ${escapeHtml(i.timeOccurred)}
+                </div>
+
+                <div class="incident-category">
+                  ${escapeHtml(i.category)}
+                </div>
+              </div>
+
+              <p>${escapeHtml(i.description)}</p>
+
+              <small>Recorded by: ${escapeHtml(i.teacherName)}</small><br>
+              <small>Entry recorded: ${escapeHtml(i.dateRecorded)}</small>
+            </div>
+          `;
+        }).join('')
+      : '<p class="muted">No incidents match the selected filters.</p>';
+  }
+
+  function clearHistoryFilters() {
+    document.getElementById('historyCategory').value = '';
+    document.getElementById('historyFrom').value = '';
+    document.getElementById('historyTo').value = '';
+
+    applyHistoryFilters();
+  }
+
+  /* =========================================================
+     ERROR / SESSION REFRESH
+  ========================================================= */
+
+  function handleServerFailure(error) {
+    if (maybeHandleExpired(error)) return;
+
+    render(`
+      <div class="card">
+        <h2>Something went wrong</h2>
+
+        <div class="notice error">
+          ${escapeHtml(errorMessage(error))}
+        </div>
+
+        <div class="btn-row">
+          <button class="btn" onclick="showHome()">Home</button>
+        </div>
+      </div>
+    `);
+  }
+
+  function maybeHandleExpired(error) {
+    const msg = errorMessage(error).toLowerCase();
+
+    if (!msg.includes('session has expired')) {
+      return false;
+    }
+
+    if (rememberedToken) {
+      render(`
+        <div class="card">
+          <p>
+            <span class="spinner"></span>
+            Refreshing your saved sign-in…
+          </p>
+        </div>
+      `, false);
+
+      apiCall('resumeRememberedLogin', {
+        rememberToken: rememberedToken
+      })
+      .then(function(result) {
+        if (result && result.success) {
+          sessionToken = result.sessionToken;
+          currentTeacher = result.teacher;
+          loadAppData();
+        } else {
+          forceLogin('Your saved sign-in is no longer valid. Please sign in again.');
+        }
+      })
+      .catch(function() {
+        forceLogin('Your session has expired. Please sign in again.');
+      });
+
+      return true;
+    }
+
+    forceLogin('Your session has expired. Please sign in again.');
+    return true;
+  }
+
+  function forceLogin(message) {
+    sessionToken = '';
+    currentTeacher = null;
+    learners = [];
+    categories = [];
+    adminUsers = [];
+    adminClasses = [];
+
+    clearRememberedToken();
+
+    navScreens = [];
+    navigationReady = false;
+
+    history.replaceState({scpsLogin:true}, '');
+
+    document.getElementById('appHeader').classList.add('hidden');
+    document.getElementById('appView').classList.add('hidden');
+    document.getElementById('loginView').classList.remove('hidden');
+
+    setLoginNotice(message || 'Please sign in again.', 'error');
+  }
+
+  function setLoginNotice(message, type) {
+    const box = document.getElementById('loginNotice');
+
+    box.innerHTML = message
+      ? `<div class="notice ${type || 'info'}">${message}</div>`
+      : '';
+  }
+
+  function clearRememberedToken() {
+    rememberedToken = '';
+    localStorage.removeItem(REMEMBER_STORAGE_KEY);
+  }
+
+  /* =========================================================
+     NAVIGATION HISTORY
+  ========================================================= */
+
+  function captureScreen() {
+    const view = document.getElementById('appView');
+    const controls = [];
+
+    if (view) {
+      view.querySelectorAll('input,select,textarea').forEach(function(el) {
+        controls.push({
+          id: el.id || '',
+          type: el.type || '',
+          value: el.value,
+          checked: !!el.checked
+        });
+      });
+    }
+
+    return {
+      html: view ? view.innerHTML : '',
+      controls: controls,
+      currentMode: currentMode,
+      selectedGrade: selectedGrade,
+      selectedClass: selectedClass,
+      selectedLearnerID: selectedLearner ? selectedLearner.learnerID : '',
+      currentHistory: currentHistory,
+      selectedAdminUserID: selectedAdminUser ? selectedAdminUser.teacherID : '',
+      scrollY: window.scrollY || 0
+    };
+  }
+
+  function restoreScreen(snapshot) {
+    if (!snapshot) return;
+
+    restoringFromBack = true;
+
+    currentMode = snapshot.currentMode || '';
+    selectedGrade = snapshot.selectedGrade || '';
+    selectedClass = snapshot.selectedClass || '';
+
+    selectedLearner =
+      (snapshot.selectedLearnerID
+        ? learners.find(function(x) {
+            return x.learnerID === snapshot.selectedLearnerID;
+          })
+        : null) || null;
+
+    currentHistory = snapshot.currentHistory || null;
+
+    selectedAdminUser =
+      (snapshot.selectedAdminUserID
+        ? adminUsers.find(function(x) {
+            return x.teacherID === snapshot.selectedAdminUserID;
+          })
+        : null) || null;
+
+    const view = document.getElementById('appView');
+    view.innerHTML = snapshot.html || '';
+
+    (snapshot.controls || []).forEach(function(c) {
+      if (!c.id) return;
+
+      const el = document.getElementById(c.id);
+      if (!el) return;
+
+      if (c.type === 'checkbox' || c.type === 'radio') {
+        el.checked = !!c.checked;
+      } else {
+        el.value = c.value;
+      }
+    });
+
+    if (document.getElementById('adminRole')) {
+      updateRegisterClassVisibility();
+    }
+
+    if (document.getElementById('historyList') && currentHistory) {
+      applyHistoryFilters();
+    }
+
+    window.scrollTo({
+      top: snapshot.scrollY || 0,
+      behavior: 'auto'
+    });
+
+    restoringFromBack = false;
+  }
+
+  function render(html, pushHistory = true) {
+    const view = document.getElementById('appView');
+
+    if (
+      navigationReady &&
+      pushHistory &&
+      !restoringFromBack &&
+      view &&
+      view.innerHTML
+    ) {
+      navScreens.push(captureScreen());
+
+      history.pushState(
+        {
+          scpsApp:true,
+          depth:navScreens.length
+        },
+        ''
+      );
+    }
+
+    view.innerHTML = html;
+
+    window.scrollTo({
+      top:0,
+      behavior:'smooth'
+    });
+  }
+
+  function appBack() {
+    if (navScreens.length) {
+      history.back();
+    } else {
+      showHome();
+    }
+  }
+
+  /* =========================================================
+     ROLE / DATE / ESCAPING HELPERS
+  ========================================================= */
+
+  function normalRole(role) {
+    const key = String(role || '')
+      .toLowerCase()
+      .replace(/[\s_-]/g,'');
+
+    if (key === 'admin') return 'Admin';
+    if (key === 'hod') return 'HOD';
+
+    if (key === 'registerteacher' || key === 'register') {
+      return 'RegisterTeacher';
+    }
+
+    if (
+      key === 'studentcouncil' ||
+      key === 'studentcouncillor' ||
+      key === 'council'
+    ) {
+      return 'StudentCouncil';
+    }
+
+    return 'Teacher';
+  }
+
+  function displayRole(role) {
+    if (role === 'RegisterTeacher') return 'Register Teacher';
+    if (role === 'StudentCouncil') return 'Student Council';
+    return role;
+  }
+
+  function localDateISO() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2,'0');
+    const day = String(d.getDate()).padStart(2,'0');
+
+    return `${y}-${m}-${day}`;
+  }
+
+  function errorMessage(error) {
+    return error
+      ? String(error.message || error)
+      : 'Unknown error.';
+  }
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;')
+      .replace(/'/g,'&#039;');
+  }
+
+  function escapeAttr(value) {
+    return escapeHtml(value);
+  }
+
+  function jsString(value) {
+    return String(value == null ? '' : value)
+      .replace(/\\/g,'\\\\')
+      .replace(/'/g,"\\'")
+      .replace(/\r/g,'')
+      .replace(/\n/g,'\\n');
+  }
 </script>
+
 </body>
 </html>
