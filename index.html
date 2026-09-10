@@ -6,161 +6,64 @@
   <meta name="theme-color" content="#1f3b5b">
   <title>SCPS Discipline App</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="icon" href="icon-192.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="SCPS Discipline">
-
   <style>
-    :root{
-      --navy:#1f3b5b;
-      --light:#f4f6f8;
-      --muted:#667784;
-      font-family:Arial,Helvetica,sans-serif;
-    }
-    *{box-sizing:border-box}
-    html,body{margin:0;min-height:100%;background:var(--light)}
-    body{min-height:100vh;color:#20303c}
-    .screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-    .card{width:min(520px,100%);background:#fff;border-radius:18px;padding:28px;
-      box-shadow:0 10px 30px rgba(31,59,91,.14);text-align:center}
-    .logo{width:110px;height:110px;object-fit:contain;margin-bottom:12px}
-    h1{color:var(--navy);font-size:28px;margin:4px 0 8px}
-    .sub{color:var(--muted);margin:0 0 22px;line-height:1.45}
-    .install-btn,.continue-btn{width:100%;border:0;border-radius:12px;padding:15px 18px;
-      min-height:54px;font-size:17px;font-weight:700;cursor:pointer}
-    .install-btn{background:var(--navy);color:#fff;margin-bottom:10px}
-    .continue-btn{background:#e8eef3;color:var(--navy)}
-    .note{margin-top:18px;padding:14px;border-radius:12px;background:#eef4f8;text-align:left;
-      font-size:14px;line-height:1.45}
-    .note strong{color:var(--navy)}
-    .version{margin-top:16px;color:var(--muted);font-size:12px}
-    #appView{display:none;position:fixed;inset:0;background:var(--light)}
-    #appFrame{width:100%;height:100%;border:0;display:block}
-    #loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-      background:var(--light);color:var(--navy);font-weight:700;z-index:2}
-    @media(max-width:600px){
-      .screen{padding:14px}
-      .card{padding:22px 18px}
-      .logo{width:96px;height:96px}
-      h1{font-size:24px}
-    }
+    :root{--navy:#1f3b5b;--light:#f4f6f8;--muted:#667784;--line:#d8e1e8;font-family:Arial,Helvetica,sans-serif}
+    *{box-sizing:border-box} html,body{margin:0;width:100%;height:100%;background:var(--light)} body{overflow:hidden;color:#20303c}
+    #landing{min-height:100%;display:flex;align-items:center;justify-content:center;padding:18px}
+    .card{width:min(520px,100%);background:#fff;border-radius:18px;padding:26px 20px;box-shadow:0 10px 30px rgba(31,59,91,.14);text-align:center}
+    .logo{width:96px;height:96px;object-fit:contain;margin-bottom:10px}
+    h1{color:var(--navy);font-size:26px;margin:4px 0 8px} p{color:var(--muted);line-height:1.45}
+    .btn{width:100%;border:0;border-radius:12px;padding:15px 18px;min-height:54px;font-size:17px;font-weight:700;cursor:pointer;margin-top:10px}
+    .primary{background:var(--navy);color:#fff}.secondary{background:#e8eef3;color:var(--navy)}
+    .note{margin-top:16px;padding:13px;background:#eef4f8;border-radius:12px;text-align:left;font-size:13px;color:#44525d;line-height:1.45}.version{margin-top:14px;color:var(--muted);font-size:12px}
+    #appShell{display:none;position:fixed;inset:0;background:var(--light)}
+    #loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;background:var(--light);color:var(--navy);font-weight:700;z-index:2}
+    #appFrame{width:100%;height:100%;border:0;display:block;background:#fff}
+    #errorBar{display:none;position:absolute;left:12px;right:12px;bottom:12px;z-index:5;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;box-shadow:0 6px 20px rgba(0,0,0,.12)}
+    #errorBar button{width:100%;border:0;background:var(--navy);color:#fff;border-radius:9px;padding:12px;font-weight:700}
   </style>
 </head>
 <body>
-
-  <div id="landingView" class="screen">
-    <div class="card">
-      <img class="logo" src="icon-192.png" alt="SCPS logo">
-      <h1>SCPS Discipline App</h1>
-      <p class="sub">Install the app on your phone for quick access, or continue in your browser.</p>
-
-      <button id="installBtn" class="install-btn" type="button">
-        Install SCPS Discipline App
-      </button>
-
-      <button id="continueBtn" class="continue-btn" type="button">
-        Continue in Browser
-      </button>
-
-      <div id="deviceNote" class="note">
-        <strong>Android:</strong> Tap the install button above, then confirm Install.<br><br>
-        <strong>iPhone:</strong> Open this page in Safari, tap <strong>Share</strong>,
-        then choose <strong>Add to Home Screen</strong>.
-      </div>
-
-      <div class="version">SCPS Discipline App · v0.91</div>
-    </div>
+<div id="landing">
+  <div class="card">
+    <img class="logo" src="icon-192.png" alt="SCPS logo">
+    <h1>SCPS Discipline App</h1>
+    <p>Tap below to open the app.</p>
+    <button id="openBtn" class="btn primary">Open SCPS Discipline App</button>
+    <button id="browserBtn" class="btn secondary">Continue in Browser</button>
+    <div class="note"><strong>iPhone:</strong> Install from Safari using <strong>Share → Add to Home Screen</strong>. When opening the installed app, tap <strong>Open SCPS Discipline App</strong>.</div>
+    <div class="version">SCPS Discipline App · v0.91</div>
   </div>
-
-  <div id="appView">
-    <div id="loading">Opening SCPS Discipline App…</div>
-    <iframe
-      id="appFrame"
-      src="https://script.google.com/macros/s/AKfycbzy-vzBco0LJpzhniHpaU1G1DiRXf-KRbmdvN69gdwkTe7aSzoZQZN4Xt4f8st7q01REA/exec"
-      title="SCPS Discipline App"
-      allow="clipboard-read; clipboard-write">
-    </iframe>
-  </div>
-
-  <script>
-    let deferredInstallPrompt = null;
-
-    const installBtn = document.getElementById('installBtn');
-    const continueBtn = document.getElementById('continueBtn');
-    const landingView = document.getElementById('landingView');
-    const appView = document.getElementById('appView');
-    const appFrame = document.getElementById('appFrame');
-    const loading = document.getElementById('loading');
-    const deviceNote = document.getElementById('deviceNote');
-
-    const isStandalone =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      window.navigator.standalone === true;
-
-    const isIOS = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
-
-    function openApp(){
-      landingView.style.display = 'none';
-      appView.style.display = 'block';
-    }
-
-    appFrame.addEventListener('load', function(){
-      loading.style.display = 'none';
-    });
-
-    continueBtn.addEventListener('click', openApp);
-
-    window.addEventListener('beforeinstallprompt', function(event){
-      event.preventDefault();
-      deferredInstallPrompt = event;
-      installBtn.disabled = false;
-      installBtn.textContent = 'Install SCPS Discipline App';
-    });
-
-    installBtn.addEventListener('click', async function(){
-      if (isIOS){
-        deviceNote.innerHTML =
-          '<strong>iPhone:</strong> In Safari, tap the <strong>Share</strong> button, then choose <strong>Add to Home Screen</strong>.';
-        deviceNote.scrollIntoView({behavior:'smooth', block:'center'});
-        return;
-      }
-
-      if (!deferredInstallPrompt){
-        deviceNote.innerHTML =
-          '<strong>Android:</strong> If the install window does not appear, open Chrome’s menu (⋮) and choose <strong>Install app</strong> or <strong>Add to Home screen</strong>.';
-        deviceNote.scrollIntoView({behavior:'smooth', block:'center'});
-        return;
-      }
-
-      deferredInstallPrompt.prompt();
-      try {
-        await deferredInstallPrompt.userChoice;
-      } finally {
-        deferredInstallPrompt = null;
-      }
-    });
-
-    window.addEventListener('appinstalled', function(){
-      deferredInstallPrompt = null;
-      installBtn.textContent = 'App Installed';
-      installBtn.disabled = true;
-    });
-
-    if (isStandalone){
-      openApp();
-    } else if (isIOS){
-      installBtn.textContent = 'How to Install on iPhone';
-    }
-
-    if ('serviceWorker' in navigator){
-      window.addEventListener('load', function(){
-        navigator.serviceWorker.register('./service-worker.js')
-          .catch(function(err){ console.error('Service worker registration failed:', err); });
-      });
-    }
-  </script>
+</div>
+<div id="appShell">
+  <div id="loading">Opening SCPS Discipline App…</div>
+  <div id="errorBar"><button id="retryBtn">Retry App</button></div>
+</div>
+<script>
+  const APP_URL='https://script.google.com/macros/s/AKfycbzy-vzBco0LJpzhniHpaU1G1DiRXf-KRbmdvN69gdwkTe7aSzoZQZN4Xt4f8st7q01REA/exec';
+  const landing=document.getElementById('landing'); const appShell=document.getElementById('appShell'); const loading=document.getElementById('loading'); const errorBar=document.getElementById('errorBar');
+  const openBtn=document.getElementById('openBtn'); const browserBtn=document.getElementById('browserBtn'); const retryBtn=document.getElementById('retryBtn');
+  const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent); const isStandalone=window.matchMedia('(display-mode: standalone)').matches || navigator.standalone===true; let loadTimer=null;
+  function createAppFrame(){
+    const old=document.getElementById('appFrame'); if(old) old.remove();
+    const frame=document.createElement('iframe'); frame.id='appFrame'; frame.title='SCPS Discipline App'; frame.src=APP_URL+'?pwa=1&t='+Date.now();
+    frame.setAttribute('allow','storage-access *; clipboard-read *; clipboard-write *');
+    frame.setAttribute('sandbox','allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation allow-storage-access-by-user-activation');
+    frame.addEventListener('load',function(){loading.style.display='none'; clearTimeout(loadTimer);});
+    appShell.appendChild(frame); clearTimeout(loadTimer); loadTimer=setTimeout(function(){loading.style.display='none'; errorBar.style.display='block';},12000);
+  }
+  function openEmbeddedApp(){landing.style.display='none'; appShell.style.display='block'; loading.style.display='flex'; errorBar.style.display='none'; createAppFrame();}
+  openBtn.addEventListener('click',openEmbeddedApp);
+  retryBtn.addEventListener('click',function(){loading.style.display='flex'; errorBar.style.display='none'; createAppFrame();});
+  browserBtn.addEventListener('click',function(){window.location.href=APP_URL;});
+  if(isStandalone && !isIOS){openEmbeddedApp();}
+  if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./service-worker.js').catch(function(err){console.error('Service worker registration failed:',err);});});}
+</script>
 </body>
 </html>
