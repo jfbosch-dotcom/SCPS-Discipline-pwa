@@ -357,7 +357,7 @@
         <strong>Add to Home Screen</strong>.
       </div>
 
-      <div class="version-footer">SCPS Discipline App · v0.92</div>
+      <div class="version-footer">SCPS Discipline App · v0.92 alpha</div>
     </div>
   </section>
 
@@ -365,7 +365,7 @@
     <img src="icon-192.png" alt="SCPS logo">
 
     <div class="header-title">
-      <h1>SCPS Discipline App <span class="header-version">v0.92</span></h1>
+      <h1>SCPS Discipline App <span class="header-version">v0.92 alpha</span></h1>
       <p>Sterkspruit Christian Private School</p>
     </div>
 
@@ -407,14 +407,14 @@
         Only use “Keep me signed in” on a private device that you control.
       </p>
 
-      <div class="version-footer">SCPS Discipline App · v0.92</div>
+      <div class="version-footer">SCPS Discipline App · v0.92 alpha</div>
     </section>
 
     <section id="appView" class="hidden"></section>
   </main>
 
 <script>
-  const APP_VERSION = 'v0.92';
+  const APP_VERSION = 'v0.92 alpha';
 
   let sessionToken = '';
   let rememberedToken = '';
@@ -438,33 +438,67 @@
 
   const REMEMBER_STORAGE_KEY = 'scpsDisciplineRememberToken';
 
-  const API_URL = 'https://scps-discipline-api.jfbosch3.workers.dev/api';
+  const API_BASE_URL = 'https://scps-discipline-api.jfbosch3.workers.dev';
+  const API_URL = API_BASE_URL + '/api';
+  const API_TIMEOUT_MS = 15000;
 
   let deferredInstallPrompt = null;
 
   async function apiCall(action, data) {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        action: action,
-        data: data || {}
-      })
-    });
+    const controller = new AbortController();
+    const timer = setTimeout(function() {
+      controller.abort();
+    }, API_TIMEOUT_MS);
 
-    const payload = await response.json();
+    try {
+      // text/plain is deliberate: it keeps this as a CORS "simple request"
+      // and avoids an OPTIONS preflight on mobile Safari/iOS web apps.
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain;charset=UTF-8'
+        },
+        body: JSON.stringify({
+          action: action,
+          data: data || {}
+        }),
+        cache: 'no-store',
+        signal: controller.signal
+      });
 
-    if (!response.ok || !payload.ok) {
-      throw new Error(
-        payload && payload.error
-          ? payload.error
-          : 'The SCPS server could not complete the request.'
-      );
+      let payload;
+      try {
+        payload = await response.json();
+      } catch (parseError) {
+        throw new Error('The SCPS server returned an unreadable response.');
+      }
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(
+          payload && payload.error
+            ? payload.error
+            : 'The SCPS server could not complete the request.'
+        );
+      }
+
+      return payload.result;
+    } catch (error) {
+      if (error && error.name === 'AbortError') {
+        throw new Error(
+          'The SCPS server did not respond within 15 seconds. Please try again or switch between Wi-Fi and mobile data.'
+        );
+      }
+
+      if (error instanceof TypeError) {
+        throw new Error(
+          'This device could not reach the SCPS server. Please check your connection and try again.'
+        );
+      }
+
+      throw error;
+    } finally {
+      clearTimeout(timer);
     }
-
-    return payload.result;
   }
 
   function isIOSDevice() {
@@ -759,7 +793,7 @@
 
         <div class="role-badge">${escapeHtml(displayRole(role))}</div>
 
-        <p class="muted">${escapeHtml(currentTeacher.email)} · v0.92</p>
+        <p class="muted">${escapeHtml(currentTeacher.email)} · v0.92 alpha</p>
 
         <div class="home-grid">
           ${actions}
