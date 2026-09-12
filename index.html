@@ -115,6 +115,17 @@
     .home-action span{font-size:13px;color:#dce8f2}
     .home-action:active{transform:scale(.99)}
 
+    .home-footer-actions{
+      display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px
+    }
+
+    .about-logo{
+      display:block;width:min(210px,55vw);height:auto;margin:18px auto 10px;
+      border-radius:50%;box-shadow:var(--shadow)
+    }
+
+    .production-credit{text-align:center;color:var(--navy);font-weight:700;font-size:18px}
+
     .header-version{
       display:inline-flex;
       align-items:center;
@@ -284,6 +295,16 @@
       padding:5px 8px;white-space:nowrap
     }
 
+    .observation-badge{
+      font-size:13px;background:#e9f4ef;color:#275c43;border-radius:999px;
+      padding:5px 8px;white-space:nowrap;font-weight:700
+    }
+
+    .report-table{width:100%;border-collapse:collapse;margin:14px 0}
+    .report-table th,.report-table td{border-bottom:1px solid var(--line);padding:10px 7px;text-align:left}
+    .report-table th{color:var(--navy);font-size:13px}
+    .report-heading{text-align:center;margin-bottom:18px}
+
     .incident p{margin:10px 0 6px;white-space:pre-wrap}
     .incident small{color:var(--muted)}
 
@@ -398,6 +419,8 @@
       .dashboard-row{align-items:center}
       .modal{padding:10px;align-items:flex-end}
       .modal-card{max-height:92vh;border-radius:16px 16px 8px 8px}
+      .report-table{font-size:12px}
+      .report-table th,.report-table td{padding:7px 4px}
     }
 
 
@@ -442,11 +465,12 @@
     }
 
     @media print{
-      .app-header,.no-print,.btn-row,.filters{display:none!important}
+      .app-header,.no-print,.btn-row,.filters,.hod-response-controls{display:none!important}
       body{background:white}
       .wrap{max-width:none;padding:0}
       .card{box-shadow:none;padding:0}
-      .incident{break-inside:avoid}
+      .incident,.dashboard-row{break-inside:avoid}
+      .report-table{font-size:10pt}
     }
   </style>
 </head>
@@ -473,7 +497,7 @@
         <strong>Add to Home Screen</strong>.
       </div>
 
-      <div class="version-footer">SCPS Discipline App · v0.93-2 alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></div>
+      <div class="version-footer">SCPS Discipline App · v0.93-3 alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JF Bosch Productions logo"></div>
     </div>
   </section>
 
@@ -481,7 +505,7 @@
     <img src="icon-192.png" alt="SCPS logo">
 
     <div class="header-title">
-      <h1>SCPS Discipline App <span class="header-version">v0.93-2 alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></span></h1>
+      <h1>SCPS Discipline App <span class="header-version">v0.93-3 alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JF Bosch Productions logo"></span></h1>
       <p>Sterkspruit Christian Private School</p>
     </div>
 
@@ -523,14 +547,14 @@
         Only use “Keep me signed in” on a private device that you control.
       </p>
 
-      <div class="version-footer">SCPS Discipline App · v0.93-2 alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></div>
+      <div class="version-footer">SCPS Discipline App · v0.93-3 alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JF Bosch Productions logo"></div>
     </section>
 
     <section id="appView" class="hidden"></section>
   </main>
 
 <script>
-  const APP_VERSION = 'v0.93-2 alpha';
+  const APP_VERSION = 'v0.93-3 alpha';
 
   let sessionToken = '';
   let rememberedToken = '';
@@ -538,6 +562,8 @@
   let learners = [];
   let categories = [];
   let offences = [];
+  let observationTypes = [];
+  let appClasses = [];
   let detentionThreshold = 40;
 
   let currentMode = '';
@@ -546,6 +572,9 @@
   let selectedLearner = null;
   let selectedLearnerIDs = [];
   let selectedOffenceCode = '';
+  let multiLearnerMode = false;
+  let observationLearner = null;
+  let currentClassHistory = null;
   let currentHistory = null;
   let currentTeacherDashboard = null;
   let currentHodDashboard = null;
@@ -802,6 +831,8 @@
       learners = data.learners || [];
       categories = data.categories || [];
       offences = data.offences || [];
+      observationTypes = data.observationTypes || ['Warning Issued', 'Parent Contact', 'General Behaviour', 'Other'];
+      appClasses = data.classes || [];
       detentionThreshold = Number(data.detentionThreshold || 40);
 
       document.getElementById('loginView').classList.add('hidden');
@@ -828,8 +859,13 @@
     learners = [];
     categories = [];
     offences = [];
+    observationTypes = [];
+    appClasses = [];
     selectedLearnerIDs = [];
     selectedOffenceCode = '';
+    multiLearnerMode = false;
+    observationLearner = null;
+    currentClassHistory = null;
     currentTeacherDashboard = null;
     currentHodDashboard = null;
     adminUsers = [];
@@ -871,16 +907,14 @@
     currentTeacherDashboard = null;
     currentHodDashboard = null;
     currentHodView = '';
+    currentClassHistory = null;
+    multiLearnerMode = false;
+    observationLearner = null;
     selectedAdminUser = null;
 
     const role = normalRole(currentTeacher.role);
 
-    let actions = `
-      <button class="home-action" onclick="startRecordIncident()">
-        <strong>Record Incident</strong>
-        <span>Search or browse by class, then record an offence.</span>
-      </button>
-    `;
+    let actions = '';
 
     if (role !== 'StudentCouncil') {
       actions += `
@@ -900,6 +934,17 @@
       `;
     }
 
+    actions += `
+      <button class="home-action" onclick="startRecordIncident()">
+        <strong>Record Incident</strong>
+        <span>Search or browse by class, then record an offence.</span>
+      </button>
+      <button class="home-action" onclick="startRecordObservation()">
+        <strong>Record Observation</strong>
+        <span>Record a warning, parent contact or general behaviour note.</span>
+      </button>
+    `;
+
     if (role === 'Admin') {
       actions += `
         <button class="home-action" onclick="openManageUsers()">
@@ -915,15 +960,37 @@
 
         <div class="role-badge">${escapeHtml(displayRole(role))}</div>
 
-        <p class="muted">${escapeHtml(currentTeacher.email)} · ${escapeHtml(APP_VERSION)} <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></p>
+        <p class="muted">${escapeHtml(currentTeacher.email)} · ${escapeHtml(APP_VERSION)} <img class="personal-logo" src="jb-productions-logo.png" alt="JF Bosch Productions logo"></p>
 
         <div class="home-grid">
           ${actions}
         </div>
 
-        <div class="btn-row">
+        <div class="home-footer-actions">
           <button class="btn danger" onclick="signOut()">Sign Out</button>
+          <button class="btn secondary" onclick="showAbout()">About</button>
         </div>
+      </div>
+    `);
+  }
+
+  function showAbout() {
+    render(`
+      <div class="card">
+        <div class="crumbs">About</div>
+        <h2>About SCPS Discipline App</h2>
+        <p><strong>${escapeHtml(APP_VERSION)}</strong></p>
+        <h3>Latest changes</h3>
+        <ul>
+          <li>Faster single-learner incident selection with a separate multiple-learner mode.</li>
+          <li>New Record Observation option for warnings, parent contact and behaviour notes.</li>
+          <li>New HOD Class History summary and full-detail reports with date ranges.</li>
+          <li>Improved HOD Dashboard order and cleaner printed/PDF reports.</li>
+          <li>Teacher history button renamed to View My History.</li>
+        </ul>
+        <img class="about-logo" src="jb-productions-logo.png" alt="JF Bosch Productions logo">
+        <div class="production-credit">JF Bosch Productions</div>
+        <div class="btn-row no-print"><button class="btn secondary" onclick="appBack()">Back</button></div>
       </div>
     `);
   }
@@ -956,7 +1023,7 @@
     const recent = data.recentEntries || [];
     const registerClass = String(data.registerClass || '').trim();
     const recentHtml = recent.map(function(entry) {
-      return incidentCard(entry, false);
+      return entryCard(entry, false);
     }).join('');
 
     render(`
@@ -992,8 +1059,8 @@
 
         <hr class="section-line">
         <h3>History</h3>
-        <p class="muted">See every incident you have saved, latest first.</p>
-        <button class="btn block" onclick="openMyEntryHistory()">View My Saved Entries</button>
+        <p class="muted">See every incident and observation you have saved, latest first.</p>
+        <button class="btn block" onclick="openMyEntryHistory()">View My History</button>
 
         <div class="btn-row no-print">
           <button class="btn secondary" onclick="appBack()">Back</button>
@@ -1007,9 +1074,9 @@
     render(`
       <div class="card">
         <div class="crumbs">Teacher Dashboard · History</div>
-        <h2>My Saved Entries</h2>
+        <h2>My History</h2>
         <p class="muted">${entries.length} saved entr${entries.length === 1 ? 'y' : 'ies'}, latest first.</p>
-        ${entries.map(function(entry) { return incidentCard(entry, false); }).join('') || '<p class="muted">You have not saved any incidents.</p>'}
+        ${entries.map(function(entry) { return entryCard(entry, false); }).join('') || '<p class="muted">You have not saved any entries.</p>'}
         <div class="btn-row no-print"><button class="btn secondary" onclick="appBack()">Back</button></div>
       </div>
     `);
@@ -1029,7 +1096,7 @@
         <hr class="section-line">
         <h3>Latest Entries</h3>
         <p class="muted">Incidents for ${escapeHtml(className)} from the last 7 days.</p>
-        ${entries.map(function(entry) { return incidentCard(entry, false); }).join('') || '<p class="muted">No incidents for this class in the last 7 days.</p>'}
+        ${entries.map(function(entry) { return entryCard(entry, false); }).join('') || '<p class="muted">No entries for this class in the last 7 days.</p>'}
         <div class="btn-row no-print"><button class="btn secondary" onclick="appBack()">Back</button></div>
       </div>
     `);
@@ -1151,6 +1218,10 @@
         </div>
 
         <div class="home-grid dashboard-menu">
+          <button class="home-action compact-action" onclick="openHodRecentIncidents()">
+            <strong>Recent Incidents</strong>
+            <span>All school incidents from the last 7 days.</span>
+          </button>
           <button class="home-action compact-action" onclick="openDetentionDue()">
             <strong>Detention Due</strong>
             <span>Learners who have reached ${Number(data.detentionThreshold || detentionThreshold)} points.</span>
@@ -1159,9 +1230,9 @@
             <strong>Learner History</strong>
             <span>Search a learner and open the full incident record.</span>
           </button>
-          <button class="home-action compact-action" onclick="openHodRecentIncidents()">
-            <strong>Recent Incidents</strong>
-            <span>All school incidents from the last 7 days.</span>
+          <button class="home-action compact-action" onclick="openClassHistorySetup()">
+            <strong>Class History</strong>
+            <span>Create a summary or full-details report for a register class.</span>
           </button>
           <button class="home-action compact-action" onclick="openHodAllIncidents()">
             <strong>All Incidents</strong>
@@ -1248,6 +1319,120 @@
     `, pushHistory);
   }
 
+  function openClassHistorySetup() {
+    currentHodView = 'class-history';
+    const classOptions = (appClasses.length ? appClasses : [...new Set(learners.map(function(x) { return x.className; }).filter(Boolean))])
+      .map(function(className) {
+        return `<option value="${escapeAttr(className)}">${escapeHtml(className)}</option>`;
+      }).join('');
+    const today = localDateISO();
+    const from = new Date();
+    from.setDate(from.getDate() - 6);
+    const defaultFrom = [from.getFullYear(), String(from.getMonth() + 1).padStart(2, '0'), String(from.getDate()).padStart(2, '0')].join('-');
+
+    render(`
+      <div class="card">
+        <div class="crumbs">HOD Dashboard · Class History</div>
+        <h2>Class History</h2>
+        <p class="muted">Choose the register class and date range first.</p>
+        <div id="classHistoryNotice"></div>
+        <label for="classHistoryClass">Register class</label>
+        <select id="classHistoryClass"><option value="">Select class…</option>${classOptions}</select>
+        <div class="filters">
+          <div><label for="classHistoryFrom">From Date</label><input id="classHistoryFrom" type="date" value="${defaultFrom}"></div>
+          <div><label for="classHistoryTo">To Date</label><input id="classHistoryTo" type="date" value="${today}"></div>
+        </div>
+        <button id="classHistoryContinue" class="btn block" style="margin-top:16px" onclick="loadClassHistory()">Continue</button>
+        <div class="btn-row no-print"><button class="btn secondary" onclick="appBack()">Back</button></div>
+      </div>
+    `);
+  }
+
+  function loadClassHistory() {
+    const className = document.getElementById('classHistoryClass').value;
+    const fromDate = document.getElementById('classHistoryFrom').value;
+    const toDate = document.getElementById('classHistoryTo').value;
+    const notice = document.getElementById('classHistoryNotice');
+    const button = document.getElementById('classHistoryContinue');
+    if (!className || !fromDate || !toDate) {
+      notice.innerHTML = '<div class="notice error">Select a class and both dates.</div>';
+      return;
+    }
+    button.disabled = true;
+    button.textContent = 'Loading…';
+    apiCall('getClassHistory', {
+      sessionToken: sessionToken,
+      className: className,
+      fromDate: fromDate,
+      toDate: toDate
+    }).then(function(data) {
+      currentClassHistory = data;
+      showClassHistoryReportChoices();
+    }).catch(function(error) {
+      button.disabled = false;
+      button.textContent = 'Continue';
+      notice.innerHTML = `<div class="notice error">${escapeHtml(errorMessage(error))}</div>`;
+      maybeHandleExpired(error);
+    });
+  }
+
+  function showClassHistoryReportChoices() {
+    const data = currentClassHistory || {};
+    render(`
+      <div class="card">
+        <div class="crumbs">HOD Dashboard · Class History</div>
+        <h2>Class History ${escapeHtml(data.className || '')}</h2>
+        <p><strong>Register teacher:</strong> ${escapeHtml(data.registerTeacherName || 'Not assigned')}</p>
+        <p class="muted">${escapeHtml(data.fromDate || '')} to ${escapeHtml(data.toDate || '')}</p>
+        <div class="stat-grid">
+          <div class="stat-card"><strong>${Number(data.totalIncidents || 0)}</strong><span>Incidents</span></div>
+          <div class="stat-card"><strong>${Number(data.totalObservations || 0)}</strong><span>Observations</span></div>
+          <div class="stat-card"><strong>${Number(data.periodDemeritPoints || 0)}</strong><span>Demerit points</span></div>
+        </div>
+        <div class="home-grid">
+          <button class="home-action compact-action" onclick="renderClassSummaryReport()"><strong>Summary Report</strong><span>Alphabetical learner totals and status.</span></button>
+          <button class="home-action compact-action" onclick="renderClassFullReport()"><strong>Full Details Report</strong><span>Summary plus every incident and observation.</span></button>
+        </div>
+        <div class="btn-row no-print"><button class="btn secondary" onclick="openClassHistorySetup()">Change Class or Dates</button><button class="btn secondary" onclick="appBack()">Back</button></div>
+      </div>
+    `);
+  }
+
+  function classReportHeader(title) {
+    const data = currentClassHistory || {};
+    return `
+      <div class="report-heading">
+        <h2>${escapeHtml(title)}</h2>
+        <p><strong>Class ${escapeHtml(data.className || '')}</strong> · Register teacher: ${escapeHtml(data.registerTeacherName || 'Not assigned')}</p>
+        <p>${escapeHtml(data.fromDate || '')} to ${escapeHtml(data.toDate || '')}</p>
+      </div>
+      <div class="summary-box">
+        <span class="pill">Incidents: <strong>${Number(data.totalIncidents || 0)}</strong></span>
+        <span class="pill">Observations: <strong>${Number(data.totalObservations || 0)}</strong></span>
+        <span class="pill">Points in period: <strong>${Number(data.periodDemeritPoints || 0)}</strong></span>
+      </div>`;
+  }
+
+  function classSummaryTable() {
+    const learnersList = (currentClassHistory && currentClassHistory.learners) || [];
+    return `
+      <table class="report-table">
+        <thead><tr><th>Learner</th><th>Inc.</th><th>Obs.</th><th>Period pts</th><th>Total pts</th><th>Status</th></tr></thead>
+        <tbody>${learnersList.map(function(learner) {
+          return `<tr><td>${escapeHtml(learner.surname)}, ${escapeHtml(learner.name)}</td><td>${Number(learner.incidentCount || 0)}</td><td>${Number(learner.observationCount || 0)}</td><td>${Number(learner.periodPoints || 0)}</td><td>${Number(learner.accumulatedTotal || 0)}</td><td>${escapeHtml(learner.disciplineStatus || '')}</td></tr>`;
+        }).join('') || '<tr><td colspan="6">No learners found.</td></tr>'}</tbody>
+      </table>`;
+  }
+
+  function renderClassSummaryReport() {
+    render(`<div class="card">${classReportHeader('Class History Summary')}${classSummaryTable()}<div class="btn-row no-print"><button class="btn" onclick="window.print()">Print / Save as PDF</button><button class="btn secondary" onclick="appBack()">Back</button></div></div>`);
+  }
+
+  function renderClassFullReport() {
+    const entries = (currentClassHistory && currentClassHistory.entries) || [];
+    render(`<div class="card">${classReportHeader('Class History — Full Details')}${classSummaryTable()}<hr class="section-line"><h3>Full Entries</h3>${entries.map(function(entry) { return entryCard(entry, false); }).join('') || '<p class="muted">No entries in this date range.</p>'}<div class="btn-row no-print"><button class="btn" onclick="window.print()">Print / Save as PDF</button><button class="btn secondary" onclick="appBack()">Back</button></div></div>`);
+  }
+
   function openHodAllIncidents(pushHistory = true) {
     currentHodView = 'all';
     render(`
@@ -1315,6 +1500,28 @@
     `;
   }
 
+  function entryCard(entry, allowHodResponse) {
+    return entry && entry.recordType === 'observation'
+      ? observationCard(entry)
+      : incidentCard(entry, allowHodResponse);
+  }
+
+  function observationCard(entry) {
+    return `
+      <div class="incident" data-observation-id="${escapeAttr(entry.observationID || entry.entryID || '')}">
+        <div class="incident-top">
+          <div class="incident-date">${escapeHtml(entry.dateOccurred || '')} · ${escapeHtml(entry.timeOccurred || '')}</div>
+          <span class="observation-badge">Observation · 0 pts</span>
+        </div>
+        <p><strong>${escapeHtml(entry.learnerName || '')}</strong>${entry.className ? ' · ' + escapeHtml(entry.className) : ''}</p>
+        <p><strong>${escapeHtml(entry.observationType || 'Observation')}</strong></p>
+        <p>${escapeHtml(entry.description || '')}</p>
+        <small>Recorded by: ${escapeHtml(entry.teacherName || entry.teacherEmail || '')}</small><br>
+        <small>Entry recorded: ${escapeHtml(entry.dateRecorded || '')}</small>
+      </div>
+    `;
+  }
+
   function incidentCard(entry, allowHodResponse) {
     const offenceLabel = entry.offenceCode
       ? entry.offenceCode + ': ' + (entry.offenceDescription || '')
@@ -1346,7 +1553,7 @@
           <strong>Action required</strong><br>
           <span>${escapeHtml(entry.hodAction || 'Pending HOD Review')}</span><br>
           ${responseMeta}
-          ${allowHodResponse ? `
+          ${allowHodResponse ? `<div class="hod-response-controls no-print">
             <label for="hodAction_${escapeAttr(entry.incidentID)}">HOD response</label>
             <select id="hodAction_${escapeAttr(entry.incidentID)}">
               <option value="">Select response…</option>
@@ -1354,7 +1561,7 @@
             </select>
             <button class="btn block" style="margin-top:9px" onclick="saveHodResponse('${jsString(entry.incidentID)}')">Save HOD Response</button>
             <div id="hodNotice_${escapeAttr(entry.incidentID)}"></div>
-          ` : ''}
+          </div>` : ''}
         </div>
       </div>
     `;
@@ -1405,7 +1612,10 @@
         currentHodDashboard.pendingActionCount = Math.max(0, Number(currentHodDashboard.pendingActionCount || 0) - 1);
       }
     }
-    if (currentHistory) (currentHistory.incidents || []).forEach(apply);
+    if (currentHistory) {
+      (currentHistory.incidents || []).forEach(apply);
+      (currentHistory.entries || []).forEach(apply);
+    }
     if (currentTeacherDashboard) {
       (currentTeacherDashboard.recentEntries || []).forEach(apply);
       (currentTeacherDashboard.allEntries || []).forEach(apply);
@@ -1802,10 +2012,116 @@
 
   function startRecordIncident() {
     currentMode = 'record';
+    multiLearnerMode = false;
     selectedLearnerIDs = [];
     selectedLearner = null;
     selectedOffenceCode = '';
     showRecordIncidentLanding();
+  }
+
+  function startRecordObservation() {
+    currentMode = 'observation';
+    multiLearnerMode = false;
+    selectedLearner = null;
+    selectedLearnerIDs = [];
+    observationLearner = null;
+    showRecordObservationLanding();
+  }
+
+  function showRecordObservationLanding() {
+    const classes = [...new Set(learners.map(function(learner) { return learner.className; }).filter(Boolean))]
+      .sort(function(a, b) { return a.localeCompare(b, undefined, {numeric:true, sensitivity:'base'}); });
+    render(`
+      <div class="card">
+        <div class="crumbs">Record Observation</div>
+        <h2>Record Observation</h2>
+        <p class="muted">Observations record warnings, parent contact and general behaviour notes. They carry no demerit points.</p>
+        <label for="observationLearnerSearch">Search for a learner</label>
+        <input id="observationLearnerSearch" type="text" placeholder="Type a learner name, surname or class…" oninput="runObservationLearnerSearch(this.value)" autofocus>
+        <div id="observationLearnerResults" class="list" style="margin-top:12px"><p class="muted">Search above, or choose a class below.</p></div>
+        <hr class="section-line">
+        <h3>Browse by Class</h3>
+        <div class="class-grid">${classes.map(function(className) {
+          return `<button class="class-btn" onclick="chooseClass('${jsString(className)}')">${escapeHtml(className)}</button>`;
+        }).join('') || '<p class="muted">No classes found.</p>'}</div>
+        <div class="btn-row no-print"><button class="btn secondary" onclick="appBack()">Back</button></div>
+      </div>
+    `);
+  }
+
+  function runObservationLearnerSearch(term) {
+    const box = document.getElementById('observationLearnerResults');
+    if (!box) return;
+    const q = String(term || '').trim().toLowerCase();
+    if (!q) {
+      box.innerHTML = '<p class="muted">Search above, or choose a class below.</p>';
+      return;
+    }
+    const results = learners.filter(function(learner) {
+      return [learner.surname, learner.name, learner.className].join(' ').toLowerCase().includes(q);
+    }).slice(0, 40);
+    box.innerHTML = results.map(function(learner) {
+      return `<button class="list-btn" onclick="selectLearner('${jsString(learner.learnerID)}')"><strong>${escapeHtml(learner.surname)}, ${escapeHtml(learner.name)}</strong><br><span class="muted">${escapeHtml(learner.className)}</span></button>`;
+    }).join('') || '<p class="muted">No matching learners found.</p>';
+  }
+
+  function showObservationForm() {
+    const learner = observationLearner || selectedLearner;
+    if (!learner) return;
+    const periods = ['Before School','Period 1','Period 2','Period 3','Break','Period 4','Period 5','Period 6','Period 7','After School','Other'];
+    render(`
+      <div class="card">
+        <div class="learner-banner"><strong>${escapeHtml(learner.surname)}, ${escapeHtml(learner.name)}</strong><br><span>${escapeHtml(learner.className)}</span></div>
+        <h2>Record Observation</h2>
+        <div id="observationNotice"></div>
+        <label for="observationDate">Observation date</label>
+        <input id="observationDate" type="date" value="${localDateISO()}">
+        <label for="observationTime">Period / time</label>
+        <select id="observationTime"><option value="">Select…</option>${periods.map(function(period) { return `<option value="${escapeAttr(period)}">${escapeHtml(period)}</option>`; }).join('')}</select>
+        <label for="observationType">Observation type</label>
+        <select id="observationType"><option value="">Select…</option>${observationTypes.map(function(type) { return `<option value="${escapeAttr(type)}">${escapeHtml(type)}</option>`; }).join('')}</select>
+        <label for="observationDetails">Details</label>
+        <textarea id="observationDetails" placeholder="Describe the warning, parent contact or behaviour observation."></textarea>
+        <div class="notice info">This observation carries 0 demerit points.</div>
+        <div class="btn-row"><button id="saveObservationBtn" class="btn success" onclick="submitObservation()">Save Observation</button><button class="btn secondary" onclick="appBack()">Back</button></div>
+      </div>
+    `);
+  }
+
+  function submitObservation() {
+    const learner = observationLearner || selectedLearner;
+    const button = document.getElementById('saveObservationBtn');
+    const notice = document.getElementById('observationNotice');
+    const observationType = document.getElementById('observationType').value;
+    const details = document.getElementById('observationDetails').value.trim();
+    const dateOccurred = document.getElementById('observationDate').value;
+    const timeOccurred = document.getElementById('observationTime').value;
+    if (!observationType || !details || !dateOccurred || !timeOccurred) {
+      notice.innerHTML = '<div class="notice error">Complete all observation fields.</div>';
+      return;
+    }
+    button.disabled = true;
+    button.textContent = 'Saving…';
+    apiCall('saveObservation', {
+      sessionToken: sessionToken,
+      learnerID: learner.learnerID,
+      observationType: observationType,
+      details: details,
+      dateOccurred: dateOccurred,
+      timeOccurred: timeOccurred
+    }).then(function(result) {
+      render(`
+        <div class="card">
+          <div class="notice success"><strong>Observation saved.</strong><br>${escapeHtml(result.learnerName || '')} · ${escapeHtml(result.observationType || '')} · 0 points</div>
+          <div class="btn-row"><button class="btn" onclick="startRecordObservation()">Record Another Observation</button><button class="btn secondary" onclick="showHome()">Home</button></div>
+        </div>
+      `);
+    }).catch(function(error) {
+      button.disabled = false;
+      button.textContent = 'Save Observation';
+      notice.innerHTML = `<div class="notice error">${escapeHtml(errorMessage(error))}</div>`;
+      maybeHandleExpired(error);
+    });
   }
 
   function showRecordIncidentLanding() {
@@ -1843,7 +2159,7 @@
           autofocus
         >
         <div id="recordLearnerResults" class="list" style="margin-top:12px">
-          <p class="muted">Search above, or choose a class below. You may select more than one learner.</p>
+          <p class="muted">Search above, or choose a class below.</p>
         </div>
 
         <hr class="section-line">
@@ -1852,15 +2168,12 @@
           ${classButtons || '<p class="muted">No classes found.</p>'}
         </div>
 
-        <div id="selectedLearnerStrip"></div>
-
         <div class="btn-row no-print">
           <button class="btn secondary" onclick="appBack()">Back</button>
         </div>
       </div>
     `);
 
-    refreshSelectedLearnerStrip();
   }
 
   function runRecordLearnerSearch(term) {
@@ -1883,12 +2196,10 @@
     }).slice(0, 40);
 
     box.innerHTML = results.map(function(learner) {
-      const selected = selectedLearnerIDs.indexOf(learner.learnerID) >= 0;
       return `
-        <button class="list-btn ${selected ? 'selected' : ''}" data-select-learner="${escapeAttr(learner.learnerID)}" onclick="toggleLearnerSelection('${jsString(learner.learnerID)}')">
+        <button class="list-btn" onclick="selectLearner('${jsString(learner.learnerID)}')">
           <strong>${escapeHtml(learner.surname)}, ${escapeHtml(learner.name)}</strong><br>
           <span class="muted">${escapeHtml(learner.className)}</span>
-          <span class="selection-indicator">${selected ? '✓ Selected' : '+ Add learner'}</span>
         </button>
       `;
     }).join('') || '<p class="muted">No matching learners found.</p>';
@@ -1962,9 +2273,9 @@
 
     const items = sorted.map(function(l, index) {
       const selected = selectedLearnerIDs.indexOf(l.learnerID) >= 0;
-      const clickAction = currentMode === 'history'
-        ? `selectLearner('${jsString(l.learnerID)}')`
-        : `toggleLearnerSelection('${jsString(l.learnerID)}')`;
+      const clickAction = currentMode === 'record' && multiLearnerMode
+        ? `toggleLearnerSelection('${jsString(l.learnerID)}')`
+        : `selectLearner('${jsString(l.learnerID)}')`;
       return `
         <button class="list-btn ${selected ? 'selected' : ''}" data-select-learner="${escapeAttr(l.learnerID)}" onclick="${clickAction}">
           <span class="numbered-learner">
@@ -1972,7 +2283,7 @@
             <span>
               <strong>${escapeHtml(l.surname)}, ${escapeHtml(l.name)}</strong><br>
               <span class="muted">${escapeHtml(l.className)}</span>
-              ${currentMode === 'history' ? '' : `<br><span class="selection-indicator">${selected ? '✓ Selected' : '+ Add learner'}</span>`}
+              ${currentMode === 'record' && multiLearnerMode ? `<br><span class="selection-indicator">${selected ? '✓ Selected' : '+ Add learner'}</span>` : ''}
             </span>
           </span>
         </button>
@@ -1983,7 +2294,9 @@
       <div class="card">
         <div class="crumbs">${escapeHtml(title || '')}</div>
 
-        <h2>Select Learner</h2>
+        ${currentMode === 'record' && !multiLearnerMode ? '<button class="btn block secondary" style="margin-bottom:16px" onclick="enableMultiLearnerMode()">Select Multiple Learners for Same Offence</button>' : ''}
+
+        <h2>${currentMode === 'observation' ? 'Select Learner for Observation' : (multiLearnerMode ? 'Select Multiple Learners' : 'Select Learner')}</h2>
 
         <input
           id="classSearch"
@@ -1997,7 +2310,7 @@
           ${items || '<p class="muted">No learners found.</p>'}
         </div>
 
-        ${currentMode === 'history' ? '' : '<div id="selectedLearnerStrip"></div>'}
+        ${currentMode === 'record' && multiLearnerMode ? '<div id="selectedLearnerStrip"></div>' : ''}
 
         <div class="btn-row no-print">
           <button class="btn secondary" onclick="appBack()">Back</button>
@@ -2005,7 +2318,14 @@
       </div>
     `);
 
-    if (currentMode !== 'history') refreshSelectedLearnerStrip();
+    if (currentMode === 'record' && multiLearnerMode) refreshSelectedLearnerStrip();
+  }
+
+  function enableMultiLearnerMode() {
+    multiLearnerMode = true;
+    selectedLearnerIDs = [];
+    const list = learners.filter(function(learner) { return learner.className === selectedClass; });
+    showLearnerList(list, 'Class ' + selectedClass);
   }
 
   function filterLearnerButtons(term) {
@@ -2077,6 +2397,9 @@
 
     if (currentMode === 'history') {
       openHistory(selectedLearner.learnerID);
+    } else if (currentMode === 'observation') {
+      observationLearner = selectedLearner;
+      showObservationForm();
     } else {
       selectedLearnerIDs = [selectedLearner.learnerID];
       selectedOffenceCode = '';
@@ -2458,11 +2781,13 @@
     if (!currentHistory) return;
 
     const learner = currentHistory.learner;
-    const all = currentHistory.incidents || [];
+    const all = currentHistory.entries || currentHistory.incidents || [];
 
     const cats = [...new Set(
       all.map(function(x) {
-        return x.offenceCode || x.category;
+        return x.recordType === 'observation'
+          ? 'Observation: ' + (x.observationType || 'Other')
+          : 'Incident: ' + (x.offenceCode || x.category || 'Legacy');
       }).filter(Boolean)
     )].sort();
 
@@ -2485,9 +2810,9 @@
 
         <div class="filters no-print">
           <div>
-            <label for="historyCategory">Offence code</label>
+            <label for="historyCategory">Entry type / offence</label>
             <select id="historyCategory" onchange="applyHistoryFilters()">
-              <option value="">All offences</option>
+              <option value="">All entries</option>
               ${categoryOptions}
             </select>
           </div>
@@ -2522,8 +2847,12 @@
     const from = document.getElementById('historyFrom')?.value || '';
     const to = document.getElementById('historyTo')?.value || '';
 
-    const filtered = (currentHistory.incidents || []).filter(function(i) {
-      if (category && (i.offenceCode || i.category) !== category) return false;
+    const entries = currentHistory.entries || currentHistory.incidents || [];
+    const filtered = entries.filter(function(i) {
+      const key = i.recordType === 'observation'
+        ? 'Observation: ' + (i.observationType || 'Other')
+        : 'Incident: ' + (i.offenceCode || i.category || 'Legacy');
+      if (category && key !== category) return false;
       if (from && i.dateOccurredISO && i.dateOccurredISO < from) return false;
       if (to && i.dateOccurredISO && i.dateOccurredISO > to) return false;
       return true;
@@ -2532,14 +2861,16 @@
     const counts = {};
 
     filtered.forEach(function(i) {
-      const key = i.offenceCode || i.category || 'Legacy';
+      const key = i.recordType === 'observation'
+        ? 'Observation'
+        : (i.offenceCode || i.category || 'Legacy');
       counts[key] = (counts[key] || 0) + 1;
     });
 
     document.getElementById('historySummary').innerHTML = `
       <span class="pill">
         <strong>${filtered.length}</strong>
-        incident${filtered.length === 1 ? '' : 's'}
+        entr${filtered.length === 1 ? 'y' : 'ies'}
       </span>
 
       ${Object.keys(counts).sort().map(function(c) {
@@ -2555,9 +2886,9 @@
     document.getElementById('historyList').innerHTML =
       filtered.length
       ? filtered.map(function(i) {
-          return incidentCard(i, Boolean(currentHistory.viewerCanRespond));
+          return entryCard(i, Boolean(currentHistory.viewerCanRespond));
         }).join('')
-      : '<p class="muted">No incidents match the selected filters.</p>';
+      : '<p class="muted">No entries match the selected filters.</p>';
   }
 
   function clearHistoryFilters() {
@@ -2698,7 +3029,10 @@
       selectedLearnerID: selectedLearner ? selectedLearner.learnerID : '',
       selectedLearnerIDs: selectedLearnerIDs.slice(),
       selectedOffenceCode: selectedOffenceCode,
+      multiLearnerMode: multiLearnerMode,
+      observationLearnerID: observationLearner ? observationLearner.learnerID : '',
       currentHistory: currentHistory,
+      currentClassHistory: currentClassHistory,
       currentHodView: currentHodView,
       selectedAdminUserID: selectedAdminUser ? selectedAdminUser.teacherID : '',
       scrollY: window.scrollY || 0
@@ -2715,6 +3049,7 @@
     selectedClass = snapshot.selectedClass || '';
     selectedLearnerIDs = snapshot.selectedLearnerIDs || [];
     selectedOffenceCode = snapshot.selectedOffenceCode || '';
+    multiLearnerMode = Boolean(snapshot.multiLearnerMode);
     currentHodView = snapshot.currentHodView || '';
 
     selectedLearner =
@@ -2725,6 +3060,10 @@
         : null) || null;
 
     currentHistory = snapshot.currentHistory || null;
+    currentClassHistory = snapshot.currentClassHistory || null;
+    observationLearner = snapshot.observationLearnerID
+      ? learners.find(function(x) { return x.learnerID === snapshot.observationLearnerID; }) || null
+      : null;
 
     selectedAdminUser =
       (snapshot.selectedAdminUserID
