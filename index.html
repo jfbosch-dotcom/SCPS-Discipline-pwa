@@ -103,16 +103,17 @@
     }
 
     .home-action{
-      min-height:92px;border:1px solid #d9e3eb;background:white;border-radius:14px;
+      min-height:104px;border:0;background:var(--navy);color:white;border-radius:14px;
       padding:16px;text-align:left;cursor:pointer;
-      box-shadow:0 4px 14px rgba(31,59,91,.08)
+      box-shadow:0 4px 14px rgba(31,59,91,.18)
     }
 
     .home-action strong{
-      display:block;color:var(--navy);font-size:18px;margin-bottom:5px
+      display:block;color:white;font-size:18px;margin-bottom:5px
     }
 
-    .home-action span{font-size:13px;color:var(--muted)}
+    .home-action span{font-size:13px;color:#dce8f2}
+    .home-action:active{transform:scale(.99)}
 
     .header-version{
       display:inline-block;
@@ -167,6 +168,17 @@
 
     .list-btn strong{color:var(--navy)}
 
+    .numbered-learner{
+      display:grid;grid-template-columns:42px minmax(0,1fr);gap:10px;
+      align-items:center
+    }
+
+    .learner-number{
+      width:34px;height:34px;border-radius:50%;background:var(--navy);
+      color:white;display:flex;align-items:center;justify-content:center;
+      font-weight:700;font-size:14px
+    }
+
     .crumbs{font-size:13px;color:var(--muted);margin-bottom:12px}
 
     .notice{border-radius:10px;padding:12px 14px;margin:12px 0}
@@ -186,6 +198,40 @@
     }
 
     .summary-box{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
+
+    .stat-grid{
+      display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;
+      margin:14px 0 18px
+    }
+
+    .stat-card{
+      background:var(--light);border:1px solid var(--line);border-radius:12px;
+      padding:14px
+    }
+
+    .stat-card strong{display:block;color:var(--navy);font-size:24px}
+    .stat-card span{font-size:12px;color:var(--muted)}
+
+    .points-badge{
+      display:inline-block;border-radius:999px;padding:5px 9px;
+      background:#fff1e6;color:#8b4a0b;font-weight:700;font-size:13px
+    }
+
+    .status.detention{background:#fdeeee;color:#7d2424}
+    .status.clear{background:#eaf6ed;color:#245c34}
+
+    .offence-preview{
+      background:var(--light);border-left:5px solid var(--blue);
+      padding:13px 14px;border-radius:10px;margin-top:10px
+    }
+
+    .dashboard-row{
+      display:flex;justify-content:space-between;gap:14px;align-items:flex-start;
+      border:1px solid var(--line);border-radius:12px;padding:14px;margin:10px 0
+    }
+
+    .dashboard-row-main{min-width:0;flex:1}
+    .dashboard-row-side{text-align:right;white-space:nowrap}
 
     .pill{
       background:#edf3f7;border-radius:999px;padding:7px 11px;font-size:13px
@@ -282,6 +328,8 @@
       .list-btn{padding:16px;font-size:16px;min-height:58px}
       .filters{grid-template-columns:1fr}
       .admin-grid{grid-template-columns:1fr}
+      .stat-grid{grid-template-columns:1fr 1fr}
+      .dashboard-row{align-items:center}
     }
 
 
@@ -357,7 +405,7 @@
         <strong>Add to Home Screen</strong>.
       </div>
 
-      <div class="version-footer">SCPS Discipline App · v0.92 alpha</div>
+      <div class="version-footer">SCPS Discipline App · v0.93-1 alpha</div>
     </div>
   </section>
 
@@ -365,7 +413,7 @@
     <img src="icon-192.png" alt="SCPS logo">
 
     <div class="header-title">
-      <h1>SCPS Discipline App <span class="header-version">v0.92 alpha</span></h1>
+      <h1>SCPS Discipline App <span class="header-version">v0.93-1 alpha</span></h1>
       <p>Sterkspruit Christian Private School</p>
     </div>
 
@@ -407,26 +455,30 @@
         Only use “Keep me signed in” on a private device that you control.
       </p>
 
-      <div class="version-footer">SCPS Discipline App · v0.92 alpha</div>
+      <div class="version-footer">SCPS Discipline App · v0.93-1 alpha</div>
     </section>
 
     <section id="appView" class="hidden"></section>
   </main>
 
 <script>
-  const APP_VERSION = 'v0.92 alpha';
+  const APP_VERSION = 'v0.93-1 alpha';
 
   let sessionToken = '';
   let rememberedToken = '';
   let currentTeacher = null;
   let learners = [];
   let categories = [];
+  let offences = [];
+  let detentionThreshold = 40;
 
   let currentMode = '';
   let selectedGrade = '';
   let selectedClass = '';
   let selectedLearner = null;
   let currentHistory = null;
+  let currentTeacherDashboard = null;
+  let currentHodDashboard = null;
 
   let adminUsers = [];
   let adminClasses = [];
@@ -678,6 +730,8 @@
       currentTeacher = data.teacher;
       learners = data.learners || [];
       categories = data.categories || [];
+      offences = data.offences || [];
+      detentionThreshold = Number(data.detentionThreshold || 40);
 
       document.getElementById('loginView').classList.add('hidden');
       document.getElementById('appHeader').classList.remove('hidden');
@@ -702,6 +756,9 @@
     currentTeacher = null;
     learners = [];
     categories = [];
+    offences = [];
+    currentTeacherDashboard = null;
+    currentHodDashboard = null;
     adminUsers = [];
     adminClasses = [];
 
@@ -736,6 +793,8 @@
     selectedClass = '';
     selectedLearner = null;
     currentHistory = null;
+    currentTeacherDashboard = null;
+    currentHodDashboard = null;
     selectedAdminUser = null;
 
     const role = normalRole(currentTeacher.role);
@@ -743,37 +802,24 @@
     let actions = `
       <button class="home-action" onclick="startRecordIncident()">
         <strong>Record Incident</strong>
-        <span>Select a learner and record a new discipline incident.</span>
-      </button>
-
-      <button class="home-action" onclick="startGlobalLearnerSearch(false)">
-        <strong>Search Learner</strong>
-        <span>Find a learner by name, surname or class.</span>
+        <span>Search or browse by class, then record an offence.</span>
       </button>
     `;
 
-    if (
-      currentTeacher.registerClass &&
-      (role === 'RegisterTeacher' || role === 'HOD' || role === 'Admin')
-    ) {
+    if (role !== 'StudentCouncil') {
       actions += `
-        <button class="home-action" onclick="showMyClassHistory()">
-          <strong>My Class History</strong>
-          <span>View discipline history for learners in ${escapeHtml(currentTeacher.registerClass)}.</span>
+        <button class="home-action" onclick="openTeacherDashboard()">
+          <strong>Teacher Dashboard</strong>
+          <span>View your recent entries and find learners.</span>
         </button>
       `;
     }
 
     if (role === 'Admin' || role === 'HOD') {
       actions += `
-        <button class="home-action" onclick="startHistoryBrowse()">
-          <strong>Learner History</strong>
-          <span>Browse grades and classes to view learner histories.</span>
-        </button>
-
-        <button class="home-action" onclick="startGlobalLearnerSearch(true)">
-          <strong>Search History</strong>
-          <span>Search for any learner and open their discipline history.</span>
+        <button class="home-action" onclick="openHodDashboard()">
+          <strong>HOD Dashboard</strong>
+          <span>View school-wide demerit totals and detention flags.</span>
         </button>
       `;
     }
@@ -793,7 +839,7 @@
 
         <div class="role-badge">${escapeHtml(displayRole(role))}</div>
 
-        <p class="muted">${escapeHtml(currentTeacher.email)} · v0.92 alpha</p>
+        <p class="muted">${escapeHtml(currentTeacher.email)} · ${escapeHtml(APP_VERSION)}</p>
 
         <div class="home-grid">
           ${actions}
@@ -804,6 +850,274 @@
         </div>
       </div>
     `);
+  }
+
+  /* =========================================================
+     DASHBOARDS
+  ========================================================= */
+
+  function openTeacherDashboard() {
+    render(`
+      <div class="card">
+        <div class="crumbs">Teacher Dashboard</div>
+        <h2>Teacher Dashboard</h2>
+        <p><span class="spinner"></span>Loading dashboard…</p>
+      </div>
+    `);
+
+    apiCall('getTeacherDashboard', {
+      sessionToken: sessionToken
+    })
+    .then(function(data) {
+      currentTeacherDashboard = data;
+      renderTeacherDashboard();
+    })
+    .catch(handleServerFailure);
+  }
+
+  function renderTeacherDashboard() {
+    const data = currentTeacherDashboard || {};
+    const recent = data.recentEntries || [];
+    const registerLearners = data.registerLearners || [];
+    const registerClass = String(data.registerClass || '').trim();
+
+    const recentHtml = recent.map(function(entry) {
+      const offenceLabel = entry.offenceLabel || entry.category || 'Legacy incident';
+
+      return `
+        <div class="incident">
+          <div class="incident-top">
+            <div class="incident-date">
+              ${escapeHtml(entry.dateOccurred)} · ${escapeHtml(entry.timeOccurred)}
+            </div>
+            <span class="points-badge">${Number(entry.demeritPoints || 0)} pts</span>
+          </div>
+          <p><strong>${escapeHtml(entry.learnerName)}</strong> · ${escapeHtml(entry.className)}</p>
+          <p>${escapeHtml(offenceLabel)}</p>
+          <small>${escapeHtml(entry.description)}</small><br>
+          <small>Entry recorded: ${escapeHtml(entry.dateRecorded)}</small>
+        </div>
+      `;
+    }).join('');
+
+    const registerHtml = registerLearners.map(function(learner) {
+      return dashboardLearnerRow(learner, true);
+    }).join('');
+
+    render(`
+      <div class="card">
+        <div class="crumbs">Teacher Dashboard</div>
+        <h2>Teacher Dashboard</h2>
+
+        <div class="stat-grid">
+          <div class="stat-card">
+            <strong>${recent.length}</strong>
+            <span>Your recent entries shown</span>
+          </div>
+          <div class="stat-card">
+            <strong>${registerClass ? escapeHtml(registerClass) : '—'}</strong>
+            <span>Register class</span>
+          </div>
+          <div class="stat-card">
+            <strong>${Number(data.detentionThreshold || detentionThreshold)}</strong>
+            <span>Detention threshold</span>
+          </div>
+        </div>
+
+        <h3>Learner Lookup</h3>
+        <p class="muted">Find a learner, then record an incident${normalRole(currentTeacher.role) === 'Teacher' ? '.' : ' or open permitted history.'}</p>
+        <input
+          id="teacherLearnerSearch"
+          type="text"
+          placeholder="Type a learner name, surname or class…"
+          oninput="runTeacherLearnerSearch(this.value)"
+        >
+        <div id="teacherLearnerResults" class="list" style="margin-top:12px">
+          <p class="muted">Start typing to search.</p>
+        </div>
+
+        ${registerClass ? `
+          <hr class="section-line">
+          <h3>Register Class: ${escapeHtml(registerClass)}</h3>
+          <p class="muted">Running demerit totals for your register class.</p>
+          ${registerHtml || '<p class="muted">No learners found for this register class.</p>'}
+        ` : ''}
+
+        <hr class="section-line">
+        <h3>My Recent Entries</h3>
+        ${recentHtml || '<p class="muted">You have no recent entries.</p>'}
+
+        <div class="btn-row no-print">
+          <button class="btn secondary" onclick="appBack()">Back</button>
+        </div>
+      </div>
+    `, false);
+  }
+
+  function runTeacherLearnerSearch(term) {
+    const box = document.getElementById('teacherLearnerResults');
+    if (!box) return;
+
+    const q = String(term || '').trim().toLowerCase();
+    if (!q) {
+      box.innerHTML = '<p class="muted">Start typing to search.</p>';
+      return;
+    }
+
+    const results = learners.filter(function(learner) {
+      return [
+        learner.surname,
+        learner.name,
+        learner.grade,
+        learner.className
+      ].join(' ').toLowerCase().includes(q);
+    }).slice(0, 30);
+
+    box.innerHTML = results.map(function(learner) {
+      const historyButton = canViewLearnerHistory(learner)
+        ? `<button class="btn secondary" onclick="openHistory('${jsString(learner.learnerID)}')">History</button>`
+        : '';
+
+      return `
+        <div class="user-card">
+          <div class="user-card-top">
+            <div>
+              <div class="user-name">${escapeHtml(learner.surname)}, ${escapeHtml(learner.name)}</div>
+              <div class="user-meta">${escapeHtml(learner.className)}</div>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn" onclick="recordForLearner('${jsString(learner.learnerID)}')">Record Incident</button>
+            ${historyButton}
+          </div>
+        </div>
+      `;
+    }).join('') || '<p class="muted">No matching learners found.</p>';
+  }
+
+  function recordForLearner(learnerID) {
+    currentMode = 'record';
+    selectedLearner = learners.find(function(learner) {
+      return learner.learnerID === learnerID;
+    }) || null;
+
+    if (selectedLearner) showIncidentForm(selectedLearner);
+  }
+
+  function openHodDashboard() {
+    render(`
+      <div class="card">
+        <div class="crumbs">HOD Dashboard</div>
+        <h2>HOD Dashboard</h2>
+        <p><span class="spinner"></span>Loading school-wide demerit totals…</p>
+      </div>
+    `);
+
+    apiCall('getHodDashboard', {
+      sessionToken: sessionToken
+    })
+    .then(function(data) {
+      currentHodDashboard = data;
+      renderHodDashboard();
+    })
+    .catch(handleServerFailure);
+  }
+
+  function renderHodDashboard() {
+    const data = currentHodDashboard || {};
+    const detentionDue = data.detentionDue || [];
+    const totals = data.learnerTotals || [];
+
+    const dueHtml = detentionDue.map(function(learner) {
+      return dashboardLearnerRow(learner, true);
+    }).join('');
+
+    const totalsHtml = totals.map(function(learner) {
+      return dashboardLearnerRow(learner, true);
+    }).join('');
+
+    render(`
+      <div class="card">
+        <div class="crumbs">HOD Dashboard</div>
+        <h2>HOD Dashboard</h2>
+
+        <div class="stat-grid">
+          <div class="stat-card">
+            <strong>${detentionDue.length}</strong>
+            <span>Detention Due</span>
+          </div>
+          <div class="stat-card">
+            <strong>${totals.length}</strong>
+            <span>Learners with points</span>
+          </div>
+          <div class="stat-card">
+            <strong>${Number(data.recordedDemeritIncidents || 0)}</strong>
+            <span>Point-bearing incidents</span>
+          </div>
+        </div>
+
+        <h3>Detention Due (${Number(data.detentionThreshold || detentionThreshold)}+ points)</h3>
+        ${dueHtml || '<div class="notice success">No learners are currently at or above the detention threshold.</div>'}
+
+        <hr class="section-line">
+        <h3>Running Demerit Totals</h3>
+        <input
+          id="hodTotalSearch"
+          type="text"
+          placeholder="Filter by learner or class…"
+          oninput="filterHodTotals(this.value)"
+        >
+        <div id="hodTotals" style="margin-top:12px">
+          ${totalsHtml || '<p class="muted">No point-bearing incidents have been recorded.</p>'}
+        </div>
+
+        <div class="btn-row no-print">
+          <button class="btn secondary" onclick="appBack()">Back</button>
+        </div>
+      </div>
+    `, false);
+  }
+
+  function dashboardLearnerRow(learner, includeHistory) {
+    const statusClass = learner.disciplineStatus === 'Detention Due'
+      ? 'detention'
+      : 'clear';
+
+    return `
+      <div class="dashboard-row" data-search="${escapeAttr([
+        learner.surname,
+        learner.name,
+        learner.className
+      ].join(' ').toLowerCase())}">
+        <div class="dashboard-row-main">
+          <strong>${escapeHtml(learner.surname)}, ${escapeHtml(learner.name)}</strong><br>
+          <span class="muted">${escapeHtml(learner.className)} · ${Number(learner.demeritIncidentCount || 0)} point-bearing incident(s)</span>
+        </div>
+        <div class="dashboard-row-side">
+          <span class="points-badge">${Number(learner.runningDemeritTotal || 0)} pts</span><br>
+          <span class="status ${statusClass}" style="display:inline-block;margin-top:7px">${escapeHtml(learner.disciplineStatus)}</span>
+          ${includeHistory ? `<br><button class="btn secondary" style="margin-top:8px" onclick="openHistory('${jsString(learner.learnerID)}')">History</button>` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  function filterHodTotals(term) {
+    const q = String(term || '').trim().toLowerCase();
+    document.querySelectorAll('#hodTotals .dashboard-row').forEach(function(row) {
+      row.style.display = !q || String(row.dataset.search || '').includes(q)
+        ? ''
+        : 'none';
+    });
+  }
+
+  function canViewLearnerHistory(learner) {
+    const role = normalRole(currentTeacher && currentTeacher.role);
+    if (role === 'HOD' || role === 'Admin') return true;
+
+    return role === 'RegisterTeacher' &&
+      String(currentTeacher.registerClass || '').trim() ===
+      String(learner.className || '').trim();
   }
 
   /* =========================================================
@@ -1177,7 +1491,87 @@
 
   function startRecordIncident() {
     currentMode = 'record';
-    showClassSelection();
+    showRecordIncidentLanding();
+  }
+
+  function showRecordIncidentLanding() {
+    const classes = [...new Set(
+      learners
+        .map(function(learner) { return learner.className; })
+        .filter(Boolean)
+    )].sort(function(a, b) {
+      return a.localeCompare(b, undefined, {numeric:true, sensitivity:'base'});
+    });
+
+    const classButtons = classes.map(function(className) {
+      return `
+        <button
+          class="class-btn"
+          onclick="chooseClass('${jsString(className)}')"
+          aria-label="Select class ${escapeAttr(className)}"
+        >
+          ${escapeHtml(className)}
+        </button>
+      `;
+    }).join('');
+
+    render(`
+      <div class="card">
+        <div class="crumbs">Record Incident</div>
+        <h2>Record Incident</h2>
+
+        <label for="recordLearnerSearch">Search for a learner</label>
+        <input
+          id="recordLearnerSearch"
+          type="text"
+          placeholder="Type a learner name, surname or class…"
+          oninput="runRecordLearnerSearch(this.value)"
+          autofocus
+        >
+        <div id="recordLearnerResults" class="list" style="margin-top:12px">
+          <p class="muted">Search above, or choose a class below.</p>
+        </div>
+
+        <hr class="section-line">
+        <h3>Browse by Class</h3>
+        <div class="class-grid">
+          ${classButtons || '<p class="muted">No classes found.</p>'}
+        </div>
+
+        <div class="btn-row no-print">
+          <button class="btn secondary" onclick="appBack()">Back</button>
+        </div>
+      </div>
+    `);
+  }
+
+  function runRecordLearnerSearch(term) {
+    const box = document.getElementById('recordLearnerResults');
+    if (!box) return;
+
+    const q = String(term || '').trim().toLowerCase();
+    if (!q) {
+      box.innerHTML = '<p class="muted">Search above, or choose a class below.</p>';
+      return;
+    }
+
+    const results = learners.filter(function(learner) {
+      return [
+        learner.surname,
+        learner.name,
+        learner.grade,
+        learner.className
+      ].join(' ').toLowerCase().includes(q);
+    }).slice(0, 40);
+
+    box.innerHTML = results.map(function(learner) {
+      return `
+        <button class="list-btn" onclick="selectGlobalLearner('${jsString(learner.learnerID)}')">
+          <strong>${escapeHtml(learner.surname)}, ${escapeHtml(learner.name)}</strong><br>
+          <span class="muted">${escapeHtml(learner.className)}</span>
+        </button>
+      `;
+    }).join('') || '<p class="muted">No matching learners found.</p>';
   }
 
   function startHistoryBrowse() {
@@ -1246,11 +1640,16 @@
       return (a.surname + '|' + a.name).localeCompare(b.surname + '|' + b.name);
     });
 
-    const items = sorted.map(function(l) {
+    const items = sorted.map(function(l, index) {
       return `
         <button class="list-btn" onclick="selectLearner('${jsString(l.learnerID)}')">
-          <strong>${escapeHtml(l.surname)}, ${escapeHtml(l.name)}</strong><br>
-          <span class="muted">${escapeHtml(l.className)}</span>
+          <span class="numbered-learner">
+            <span class="learner-number">${index + 1}</span>
+            <span>
+              <strong>${escapeHtml(l.surname)}, ${escapeHtml(l.name)}</strong><br>
+              <span class="muted">${escapeHtml(l.className)}</span>
+            </span>
+          </span>
         </button>
       `;
     }).join('');
@@ -1411,10 +1810,10 @@
   function showIncidentForm(learner) {
     const today = localDateISO();
 
-    const categoryOptions = categories.map(function(c) {
+    const offenceOptions = offences.map(function(offence) {
       return `
-        <option value="${escapeAttr(c)}">
-          ${escapeHtml(c)}
+        <option value="${escapeAttr(offence.code)}">
+          ${escapeHtml(offence.code)} · ${escapeHtml(offence.description)} (${Number(offence.points)} pts)
         </option>
       `;
     }).join('');
@@ -1437,7 +1836,7 @@
       <div class="card">
         <div class="learner-banner">
           <strong>${escapeHtml(learner.surname)}, ${escapeHtml(learner.name)}</strong><br>
-          <span>${escapeHtml(learner.className)} · ${escapeHtml(learner.learnerID)}</span>
+          <span>${escapeHtml(learner.className)}</span>
         </div>
 
         <h2>Record Incident</h2>
@@ -1458,13 +1857,17 @@
           }).join('')}
         </select>
 
-        <label for="category">Category</label>
-        <select id="category">
+        <label for="offenceCode">Offence</label>
+        <select id="offenceCode" onchange="updateOffencePreview()">
           <option value="">Select…</option>
-          ${categoryOptions}
+          ${offenceOptions}
         </select>
 
-        <label for="description">Description</label>
+        <div id="offencePreview" class="offence-preview">
+          Select an offence to see the fixed demerit value.
+        </div>
+
+        <label for="description">Incident details</label>
         <textarea
           id="description"
           placeholder="Briefly describe what happened."
@@ -1485,17 +1888,31 @@
     `);
   }
 
+  function updateOffencePreview() {
+    const select = document.getElementById('offenceCode');
+    const preview = document.getElementById('offencePreview');
+    if (!select || !preview) return;
+
+    const rule = offences.find(function(offence) {
+      return offence.code === select.value;
+    });
+
+    preview.innerHTML = rule
+      ? `<strong>${escapeHtml(rule.code)}</strong> · ${escapeHtml(rule.description)}<br><span class="points-badge" style="margin-top:8px">${Number(rule.points)} demerit points</span><p class="muted" style="margin:8px 0 0">The point value is fixed and cannot be edited.</p>`
+      : 'Select an offence to see the fixed demerit value.';
+  }
+
   function submitIncident() {
     if (!selectedLearner) return;
 
     const dateOccurred = document.getElementById('dateOccurred').value;
     const timeOccurred = document.getElementById('timeOccurred').value;
-    const category = document.getElementById('category').value;
+    const offenceCode = document.getElementById('offenceCode').value;
     const description = document.getElementById('description').value.trim();
 
-    if (!dateOccurred || !timeOccurred || !category || !description) {
+    if (!dateOccurred || !timeOccurred || !offenceCode || !description) {
       document.getElementById('formNotice').innerHTML =
-        '<div class="notice error">Please complete the date, period/time, category and description.</div>';
+        '<div class="notice error">Please complete the date, period/time, offence and incident details.</div>';
       return;
     }
 
@@ -1506,10 +1923,7 @@
     apiCall('saveIncident', {
       sessionToken: sessionToken,
       learnerID: selectedLearner.learnerID,
-      learnerName: selectedLearner.surname + ', ' + selectedLearner.name,
-      grade: selectedLearner.grade,
-      className: selectedLearner.className,
-      category: category,
+      offenceCode: offenceCode,
       description: description,
       dateOccurred: dateOccurred,
       timeOccurred: timeOccurred
@@ -1524,6 +1938,14 @@
           <p>
             <strong>${escapeHtml(selectedLearner.surname)}, ${escapeHtml(selectedLearner.name)}</strong>
           </p>
+
+          <p>${escapeHtml(result.offenceCode || '')}: ${escapeHtml(result.offenceDescription || '')}</p>
+
+          <div class="summary-box">
+            <span class="points-badge">+${Number(result.demeritPoints || 0)} points</span>
+            <span class="pill">Running total: <strong>${Number(result.runningDemeritTotal || 0)}</strong></span>
+            <span class="status ${result.disciplineStatus === 'Detention Due' ? 'detention' : 'clear'}">${escapeHtml(result.disciplineStatus || '')}</span>
+          </div>
 
           <p class="muted">
             Reference: ${escapeHtml(result.incidentID || '')}
@@ -1587,7 +2009,9 @@
     const all = currentHistory.incidents || [];
 
     const cats = [...new Set(
-      all.map(x => x.category).filter(Boolean)
+      all.map(function(x) {
+        return x.offenceCode || x.category;
+      }).filter(Boolean)
     )].sort();
 
     const categoryOptions = cats.map(function(c) {
@@ -1600,16 +2024,18 @@
       <div class="card">
         <div class="learner-banner">
           <strong>${escapeHtml(learner.surname)}, ${escapeHtml(learner.name)}</strong><br>
-          <span>Class ${escapeHtml(learner.className)} · ${escapeHtml(learner.learnerID)}</span>
+          <span>Class ${escapeHtml(learner.className)}</span><br>
+          <span class="points-badge" style="margin-top:8px">${Number(currentHistory.runningDemeritTotal || 0)} total demerit points</span>
+          <span class="status ${currentHistory.disciplineStatus === 'Detention Due' ? 'detention' : 'clear'}" style="display:inline-block;margin-top:8px">${escapeHtml(currentHistory.disciplineStatus || '')}</span>
         </div>
 
         <h2>Learner Discipline History</h2>
 
         <div class="filters no-print">
           <div>
-            <label for="historyCategory">Category</label>
+            <label for="historyCategory">Offence code</label>
             <select id="historyCategory" onchange="applyHistoryFilters()">
-              <option value="">All categories</option>
+              <option value="">All offences</option>
               ${categoryOptions}
             </select>
           </div>
@@ -1645,7 +2071,7 @@
     const to = document.getElementById('historyTo')?.value || '';
 
     const filtered = (currentHistory.incidents || []).filter(function(i) {
-      if (category && i.category !== category) return false;
+      if (category && (i.offenceCode || i.category) !== category) return false;
       if (from && i.dateOccurredISO && i.dateOccurredISO < from) return false;
       if (to && i.dateOccurredISO && i.dateOccurredISO > to) return false;
       return true;
@@ -1654,7 +2080,8 @@
     const counts = {};
 
     filtered.forEach(function(i) {
-      counts[i.category] = (counts[i.category] || 0) + 1;
+      const key = i.offenceCode || i.category || 'Legacy';
+      counts[key] = (counts[key] || 0) + 1;
     });
 
     document.getElementById('historySummary').innerHTML = `
@@ -1683,11 +2110,12 @@
                   ${escapeHtml(i.dateOccurred)} · ${escapeHtml(i.timeOccurred)}
                 </div>
 
-                <div class="incident-category">
-                  ${escapeHtml(i.category)}
+                <div>
+                  <span class="points-badge">${Number(i.demeritPoints || 0)} pts</span>
                 </div>
               </div>
 
+              <p><strong>${escapeHtml(i.offenceCode || '')}${i.offenceCode ? ': ' : ''}${escapeHtml(i.offenceDescription || i.category || 'Legacy incident')}</strong></p>
               <p>${escapeHtml(i.description)}</p>
 
               <small>Recorded by: ${escapeHtml(i.teacherName)}</small><br>
@@ -1773,6 +2201,9 @@
     currentTeacher = null;
     learners = [];
     categories = [];
+    offences = [];
+    currentTeacherDashboard = null;
+    currentHodDashboard = null;
     adminUsers = [];
     adminClasses = [];
 
