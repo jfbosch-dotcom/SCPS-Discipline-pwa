@@ -116,7 +116,9 @@
     .home-action:active{transform:scale(.99)}
 
     .header-version{
-      display:inline-block;
+      display:inline-flex;
+      align-items:center;
+      gap:4px;
       margin-left:6px;
       padding:3px 6px;
       border-radius:999px;
@@ -127,12 +129,23 @@
       vertical-align:middle
     }
 
+    .personal-logo{
+      width:1em;height:1em;object-fit:contain;vertical-align:-.12em;
+      margin-left:4px;border-radius:50%
+    }
+
+    .app-header img.personal-logo{
+      width:12px;height:12px;padding:0;background:transparent;border-radius:50%
+    }
+
     .version-footer{
       margin-top:16px;
       text-align:center;
       color:var(--muted);
       font-size:12px
     }
+
+    .version-footer .personal-logo{width:12px;height:12px}
 
     .class-grid{
       display:grid;
@@ -168,6 +181,20 @@
 
     .list-btn strong{color:var(--navy)}
 
+    .list-btn.selected{border:2px solid var(--blue);background:#edf5fb}
+
+    .selection-indicator{
+      display:inline-block;margin-top:6px;font-size:12px;font-weight:700;
+      color:var(--blue)
+    }
+
+    .selected-strip{
+      position:sticky;bottom:8px;z-index:20;background:white;border:1px solid var(--line);
+      border-radius:12px;padding:12px;margin-top:14px;box-shadow:var(--shadow)
+    }
+
+    .selected-names{font-size:13px;color:var(--muted);margin:7px 0}
+
     .numbered-learner{
       display:grid;grid-template-columns:42px minmax(0,1fr);gap:10px;
       align-items:center
@@ -195,6 +222,10 @@
 
     .filters{
       display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:10px
+    }
+
+    .date-filter{
+      display:grid;grid-template-columns:1fr auto auto;gap:10px
     }
 
     .summary-box{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
@@ -255,6 +286,40 @@
 
     .incident p{margin:10px 0 6px;white-space:pre-wrap}
     .incident small{color:var(--muted)}
+
+    .hod-response{
+      margin-top:12px;padding:11px 12px;background:#f4f7f9;
+      border-left:4px solid var(--blue);border-radius:9px
+    }
+
+    .hod-response.pending{border-left-color:var(--warning);background:#fff8eb}
+
+    .hod-response label{margin-top:0}
+
+    .offence-shortcuts{
+      display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;
+      margin:12px 0
+    }
+
+    .offence-shortcut{
+      min-height:82px;border:0;border-radius:12px;padding:12px;
+      background:var(--navy);color:white;font-weight:700;cursor:pointer
+    }
+
+    .offence-shortcut small{display:block;margin-top:5px;color:#dce8f2}
+
+    .modal{
+      position:fixed;inset:0;z-index:100;background:rgba(18,35,51,.58);
+      padding:16px;display:flex;align-items:center;justify-content:center
+    }
+
+    .modal-card{
+      width:min(680px,100%);max-height:90vh;overflow:auto;background:white;
+      border-radius:16px;padding:20px;box-shadow:0 16px 48px rgba(0,0,0,.28)
+    }
+
+    .dashboard-menu{margin:14px 0 20px}
+    .compact-action{min-height:92px}
 
     .search-input{margin-bottom:12px}
 
@@ -327,9 +392,12 @@
       .class-btn{min-height:78px;font-size:23px;border-radius:7px}
       .list-btn{padding:16px;font-size:16px;min-height:58px}
       .filters{grid-template-columns:1fr}
+      .date-filter{grid-template-columns:1fr}
       .admin-grid{grid-template-columns:1fr}
       .stat-grid{grid-template-columns:1fr 1fr}
       .dashboard-row{align-items:center}
+      .modal{padding:10px;align-items:flex-end}
+      .modal-card{max-height:92vh;border-radius:16px 16px 8px 8px}
     }
 
 
@@ -405,7 +473,7 @@
         <strong>Add to Home Screen</strong>.
       </div>
 
-      <div class="version-footer">SCPS Discipline App · v0.93-1 alpha</div>
+      <div class="version-footer">SCPS Discipline App · v0.93-2 alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></div>
     </div>
   </section>
 
@@ -413,7 +481,7 @@
     <img src="icon-192.png" alt="SCPS logo">
 
     <div class="header-title">
-      <h1>SCPS Discipline App <span class="header-version">v0.93-1 alpha</span></h1>
+      <h1>SCPS Discipline App <span class="header-version">v0.93-2 alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></span></h1>
       <p>Sterkspruit Christian Private School</p>
     </div>
 
@@ -455,14 +523,14 @@
         Only use “Keep me signed in” on a private device that you control.
       </p>
 
-      <div class="version-footer">SCPS Discipline App · v0.93-1 alpha</div>
+      <div class="version-footer">SCPS Discipline App · v0.93-2 alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></div>
     </section>
 
     <section id="appView" class="hidden"></section>
   </main>
 
 <script>
-  const APP_VERSION = 'v0.93-1 alpha';
+  const APP_VERSION = 'v0.93-2 alpha';
 
   let sessionToken = '';
   let rememberedToken = '';
@@ -476,9 +544,12 @@
   let selectedGrade = '';
   let selectedClass = '';
   let selectedLearner = null;
+  let selectedLearnerIDs = [];
+  let selectedOffenceCode = '';
   let currentHistory = null;
   let currentTeacherDashboard = null;
   let currentHodDashboard = null;
+  let currentHodView = '';
 
   let adminUsers = [];
   let adminClasses = [];
@@ -757,6 +828,8 @@
     learners = [];
     categories = [];
     offences = [];
+    selectedLearnerIDs = [];
+    selectedOffenceCode = '';
     currentTeacherDashboard = null;
     currentHodDashboard = null;
     adminUsers = [];
@@ -792,9 +865,12 @@
     selectedGrade = '';
     selectedClass = '';
     selectedLearner = null;
+    selectedLearnerIDs = [];
+    selectedOffenceCode = '';
     currentHistory = null;
     currentTeacherDashboard = null;
     currentHodDashboard = null;
+    currentHodView = '';
     selectedAdminUser = null;
 
     const role = normalRole(currentTeacher.role);
@@ -839,7 +915,7 @@
 
         <div class="role-badge">${escapeHtml(displayRole(role))}</div>
 
-        <p class="muted">${escapeHtml(currentTeacher.email)} · ${escapeHtml(APP_VERSION)}</p>
+        <p class="muted">${escapeHtml(currentTeacher.email)} · ${escapeHtml(APP_VERSION)} <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></p>
 
         <div class="home-grid">
           ${actions}
@@ -878,30 +954,9 @@
   function renderTeacherDashboard() {
     const data = currentTeacherDashboard || {};
     const recent = data.recentEntries || [];
-    const registerLearners = data.registerLearners || [];
     const registerClass = String(data.registerClass || '').trim();
-
     const recentHtml = recent.map(function(entry) {
-      const offenceLabel = entry.offenceLabel || entry.category || 'Legacy incident';
-
-      return `
-        <div class="incident">
-          <div class="incident-top">
-            <div class="incident-date">
-              ${escapeHtml(entry.dateOccurred)} · ${escapeHtml(entry.timeOccurred)}
-            </div>
-            <span class="points-badge">${Number(entry.demeritPoints || 0)} pts</span>
-          </div>
-          <p><strong>${escapeHtml(entry.learnerName)}</strong> · ${escapeHtml(entry.className)}</p>
-          <p>${escapeHtml(offenceLabel)}</p>
-          <small>${escapeHtml(entry.description)}</small><br>
-          <small>Entry recorded: ${escapeHtml(entry.dateRecorded)}</small>
-        </div>
-      `;
-    }).join('');
-
-    const registerHtml = registerLearners.map(function(learner) {
-      return dashboardLearnerRow(learner, true);
+      return incidentCard(entry, false);
     }).join('');
 
     render(`
@@ -909,49 +964,93 @@
         <div class="crumbs">Teacher Dashboard</div>
         <h2>Teacher Dashboard</h2>
 
-        <div class="stat-grid">
-          <div class="stat-card">
-            <strong>${recent.length}</strong>
-            <span>Your recent entries shown</span>
-          </div>
-          <div class="stat-card">
-            <strong>${registerClass ? escapeHtml(registerClass) : '—'}</strong>
-            <span>Register class</span>
-          </div>
-          <div class="stat-card">
-            <strong>${Number(data.detentionThreshold || detentionThreshold)}</strong>
-            <span>Detention threshold</span>
-          </div>
-        </div>
-
-        <h3>Learner Lookup</h3>
-        <p class="muted">Find a learner, then record an incident${normalRole(currentTeacher.role) === 'Teacher' ? '.' : ' or open permitted history.'}</p>
-        <input
-          id="teacherLearnerSearch"
-          type="text"
-          placeholder="Type a learner name, surname or class…"
-          oninput="runTeacherLearnerSearch(this.value)"
-        >
-        <div id="teacherLearnerResults" class="list" style="margin-top:12px">
-          <p class="muted">Start typing to search.</p>
-        </div>
-
         ${registerClass ? `
-          <hr class="section-line">
-          <h3>Register Class: ${escapeHtml(registerClass)}</h3>
-          <p class="muted">Running demerit totals for your register class.</p>
-          ${registerHtml || '<p class="muted">No learners found for this register class.</p>'}
+          <button class="home-action compact-action" style="width:100%;margin-bottom:16px" onclick="openMyRegisterClass()">
+            <strong>My Register Class ${escapeHtml(registerClass)}</strong>
+            <span>Open the class summary and incidents from the last 7 days.</span>
+          </button>
         ` : ''}
 
+        <div class="stat-grid">
+          <div class="stat-card">
+            <strong>${Number(data.recentEntryCount || 0)}</strong>
+            <span>Entries in the last 7 days</span>
+          </div>
+          <div class="stat-card">
+            <strong>${Number(data.recentPointTotal || 0)}</strong>
+            <span>Points recorded in the last 7 days</span>
+          </div>
+          <div class="stat-card">
+            <strong>${(data.allEntries || []).length}</strong>
+            <span>Total saved entries</span>
+          </div>
+        </div>
+
+        <h3>Recent Entries</h3>
+        <p class="muted">Your entries from the last 7 days: <strong>${Number(data.recentEntryCount || 0)}</strong> · Total points: <strong>${Number(data.recentPointTotal || 0)}</strong></p>
+        ${recentHtml || '<p class="muted">You have no entries from the last 7 days.</p>'}
+
         <hr class="section-line">
-        <h3>My Recent Entries</h3>
-        ${recentHtml || '<p class="muted">You have no recent entries.</p>'}
+        <h3>History</h3>
+        <p class="muted">See every incident you have saved, latest first.</p>
+        <button class="btn block" onclick="openMyEntryHistory()">View My Saved Entries</button>
 
         <div class="btn-row no-print">
           <button class="btn secondary" onclick="appBack()">Back</button>
         </div>
       </div>
     `, false);
+  }
+
+  function openMyEntryHistory() {
+    const entries = (currentTeacherDashboard && currentTeacherDashboard.allEntries) || [];
+    render(`
+      <div class="card">
+        <div class="crumbs">Teacher Dashboard · History</div>
+        <h2>My Saved Entries</h2>
+        <p class="muted">${entries.length} saved entr${entries.length === 1 ? 'y' : 'ies'}, latest first.</p>
+        ${entries.map(function(entry) { return incidentCard(entry, false); }).join('') || '<p class="muted">You have not saved any incidents.</p>'}
+        <div class="btn-row no-print"><button class="btn secondary" onclick="appBack()">Back</button></div>
+      </div>
+    `);
+  }
+
+  function openMyRegisterClass() {
+    const data = currentTeacherDashboard || {};
+    const className = String(data.registerClass || '').trim();
+    if (!className) return;
+    const entries = data.registerRecentEntries || [];
+
+    render(`
+      <div class="card">
+        <div class="crumbs">Teacher Dashboard · My Register Class</div>
+        <h2>My Register Class ${escapeHtml(className)}</h2>
+        <button class="btn block" onclick="openRegisterClassSummary()">Class Summary</button>
+        <hr class="section-line">
+        <h3>Latest Entries</h3>
+        <p class="muted">Incidents for ${escapeHtml(className)} from the last 7 days.</p>
+        ${entries.map(function(entry) { return incidentCard(entry, false); }).join('') || '<p class="muted">No incidents for this class in the last 7 days.</p>'}
+        <div class="btn-row no-print"><button class="btn secondary" onclick="appBack()">Back</button></div>
+      </div>
+    `);
+  }
+
+  function openRegisterClassSummary() {
+    const data = currentTeacherDashboard || {};
+    const className = String(data.registerClass || '').trim();
+    const sorted = (data.registerLearners || []).slice().sort(function(a, b) {
+      return (a.surname + '|' + a.name).localeCompare(b.surname + '|' + b.name);
+    });
+
+    render(`
+      <div class="card">
+        <div class="crumbs">Teacher Dashboard · ${escapeHtml(className)} · Class Summary</div>
+        <h2>Class Summary ${escapeHtml(className)}</h2>
+        <p class="muted">Learners are listed alphabetically. Totals include all recorded demerit points.</p>
+        ${sorted.map(function(learner) { return dashboardLearnerRow(learner, true); }).join('') || '<p class="muted">No learners found.</p>'}
+        <div class="btn-row no-print"><button class="btn secondary" onclick="appBack()">Back</button></div>
+      </div>
+    `);
   }
 
   function runTeacherLearnerSearch(term) {
@@ -997,11 +1096,13 @@
 
   function recordForLearner(learnerID) {
     currentMode = 'record';
+    selectedLearnerIDs = [learnerID];
+    selectedOffenceCode = '';
     selectedLearner = learners.find(function(learner) {
       return learner.learnerID === learnerID;
     }) || null;
 
-    if (selectedLearner) showIncidentForm(selectedLearner);
+    if (selectedLearner) showIncidentForm();
   }
 
   function openHodDashboard() {
@@ -1026,15 +1127,8 @@
   function renderHodDashboard() {
     const data = currentHodDashboard || {};
     const detentionDue = data.detentionDue || [];
-    const totals = data.learnerTotals || [];
-
-    const dueHtml = detentionDue.map(function(learner) {
-      return dashboardLearnerRow(learner, true);
-    }).join('');
-
-    const totalsHtml = totals.map(function(learner) {
-      return dashboardLearnerRow(learner, true);
-    }).join('');
+    const recent = data.recentIncidents || [];
+    const all = data.allIncidents || [];
 
     render(`
       <div class="card">
@@ -1047,28 +1141,32 @@
             <span>Detention Due</span>
           </div>
           <div class="stat-card">
-            <strong>${totals.length}</strong>
-            <span>Learners with points</span>
+            <strong>${recent.length}</strong>
+            <span>Incidents in the last 7 days</span>
           </div>
           <div class="stat-card">
-            <strong>${Number(data.recordedDemeritIncidents || 0)}</strong>
-            <span>Point-bearing incidents</span>
+            <strong>${Number(data.pendingActionCount || 0)}</strong>
+            <span>Awaiting HOD response</span>
           </div>
         </div>
 
-        <h3>Detention Due (${Number(data.detentionThreshold || detentionThreshold)}+ points)</h3>
-        ${dueHtml || '<div class="notice success">No learners are currently at or above the detention threshold.</div>'}
-
-        <hr class="section-line">
-        <h3>Running Demerit Totals</h3>
-        <input
-          id="hodTotalSearch"
-          type="text"
-          placeholder="Filter by learner or class…"
-          oninput="filterHodTotals(this.value)"
-        >
-        <div id="hodTotals" style="margin-top:12px">
-          ${totalsHtml || '<p class="muted">No point-bearing incidents have been recorded.</p>'}
+        <div class="home-grid dashboard-menu">
+          <button class="home-action compact-action" onclick="openDetentionDue()">
+            <strong>Detention Due</strong>
+            <span>Learners who have reached ${Number(data.detentionThreshold || detentionThreshold)} points.</span>
+          </button>
+          <button class="home-action compact-action" onclick="openHodLearnerHistory()">
+            <strong>Learner History</strong>
+            <span>Search a learner and open the full incident record.</span>
+          </button>
+          <button class="home-action compact-action" onclick="openHodRecentIncidents()">
+            <strong>Recent Incidents</strong>
+            <span>All school incidents from the last 7 days.</span>
+          </button>
+          <button class="home-action compact-action" onclick="openHodAllIncidents()">
+            <strong>All Incidents</strong>
+            <span>All ${all.length} incidents, latest first, with a date filter.</span>
+          </button>
         </div>
 
         <div class="btn-row no-print">
@@ -1076,6 +1174,120 @@
         </div>
       </div>
     `, false);
+  }
+
+  function openDetentionDue() {
+    currentHodView = 'detention';
+    const data = currentHodDashboard || {};
+    const due = data.detentionDue || [];
+    render(`
+      <div class="card">
+        <div class="crumbs">HOD Dashboard · Detention Due</div>
+        <h2>Detention Due</h2>
+        <p class="muted">Learners at or above ${Number(data.detentionThreshold || detentionThreshold)} total points.</p>
+        ${due.map(function(learner) { return dashboardLearnerRow(learner, true); }).join('') || '<div class="notice success">No learners are currently at or above the detention threshold.</div>'}
+        <div class="btn-row no-print"><button class="btn secondary" onclick="appBack()">Back</button></div>
+      </div>
+    `);
+  }
+
+  function openHodLearnerHistory() {
+    currentHodView = 'learner-history';
+    render(`
+      <div class="card">
+        <div class="crumbs">HOD Dashboard · Learner History</div>
+        <h2>Learner History</h2>
+        <label for="hodLearnerSearch">Search learner</label>
+        <input id="hodLearnerSearch" type="text" placeholder="Type a name, surname or class…" oninput="runHodLearnerSearch(this.value)" autofocus>
+        <div id="hodLearnerResults" class="list" style="margin-top:12px"><p class="muted">Start typing to search.</p></div>
+        <div class="btn-row no-print"><button class="btn secondary" onclick="appBack()">Back</button></div>
+      </div>
+    `);
+  }
+
+  function runHodLearnerSearch(term) {
+    const box = document.getElementById('hodLearnerResults');
+    if (!box) return;
+    const q = String(term || '').trim().toLowerCase();
+    if (!q) {
+      box.innerHTML = '<p class="muted">Start typing to search.</p>';
+      return;
+    }
+
+    const totalMap = {};
+    ((currentHodDashboard && currentHodDashboard.learnerTotals) || []).forEach(function(item) {
+      totalMap[item.learnerID] = item;
+    });
+    const results = learners.filter(function(learner) {
+      return [learner.surname, learner.name, learner.className]
+        .join(' ').toLowerCase().includes(q);
+    }).slice(0, 40);
+
+    box.innerHTML = results.map(function(learner) {
+      const summary = totalMap[learner.learnerID] || {};
+      return `
+        <button class="list-btn" onclick="openHistory('${jsString(learner.learnerID)}')">
+          <strong>${escapeHtml(learner.surname)}, ${escapeHtml(learner.name)}</strong><br>
+          <span class="muted">${escapeHtml(learner.className)} · Total points: ${Number(summary.runningDemeritTotal || 0)}</span>
+        </button>
+      `;
+    }).join('') || '<p class="muted">No matching learners found.</p>';
+  }
+
+  function openHodRecentIncidents(pushHistory = true) {
+    currentHodView = 'recent';
+    const incidents = (currentHodDashboard && currentHodDashboard.recentIncidents) || [];
+    render(`
+      <div class="card">
+        <div class="crumbs">HOD Dashboard · Recent Incidents</div>
+        <h2>Recent Incidents</h2>
+        <p class="muted">School-wide incidents from the last 7 days: <strong>${incidents.length}</strong></p>
+        ${incidents.map(function(entry) { return incidentCard(entry, true); }).join('') || '<p class="muted">No incidents in the last 7 days.</p>'}
+        <div class="btn-row no-print"><button class="btn secondary" onclick="appBack()">Back</button></div>
+      </div>
+    `, pushHistory);
+  }
+
+  function openHodAllIncidents(pushHistory = true) {
+    currentHodView = 'all';
+    render(`
+      <div class="card">
+        <div class="crumbs">HOD Dashboard · All Incidents</div>
+        <h2>All Incidents</h2>
+        <div class="date-filter no-print">
+          <div>
+            <label for="hodIncidentDate">Filter by incident date</label>
+            <input id="hodIncidentDate" type="date">
+          </div>
+          <button class="btn" style="align-self:end" onclick="applyHodIncidentDateFilter()">Filter Date</button>
+          <button class="btn secondary" style="align-self:end" onclick="clearHodIncidentDateFilter()">Show All</button>
+        </div>
+        <div id="hodAllSummary" class="summary-box"></div>
+        <div id="hodAllList"></div>
+        <div class="btn-row no-print"><button class="btn secondary" onclick="appBack()">Back</button></div>
+      </div>
+    `, pushHistory);
+    applyHodIncidentDateFilter();
+  }
+
+  function applyHodIncidentDateFilter() {
+    const date = document.getElementById('hodIncidentDate')?.value || '';
+    const all = (currentHodDashboard && currentHodDashboard.allIncidents) || [];
+    const filtered = date ? all.filter(function(entry) {
+      return entry.dateOccurredISO === date;
+    }) : all;
+    const summary = document.getElementById('hodAllSummary');
+    const list = document.getElementById('hodAllList');
+    if (summary) summary.innerHTML = `<span class="pill"><strong>${filtered.length}</strong> incident${filtered.length === 1 ? '' : 's'}${date ? ' on ' + escapeHtml(date) : ''}</span>`;
+    if (list) list.innerHTML = filtered.map(function(entry) {
+      return incidentCard(entry, true);
+    }).join('') || '<p class="muted">No incidents match this date.</p>';
+  }
+
+  function clearHodIncidentDateFilter() {
+    const input = document.getElementById('hodIncidentDate');
+    if (input) input.value = '';
+    applyHodIncidentDateFilter();
   }
 
   function dashboardLearnerRow(learner, includeHistory) {
@@ -1094,12 +1306,111 @@
           <span class="muted">${escapeHtml(learner.className)} · ${Number(learner.demeritIncidentCount || 0)} point-bearing incident(s)</span>
         </div>
         <div class="dashboard-row-side">
-          <span class="points-badge">${Number(learner.runningDemeritTotal || 0)} pts</span><br>
+          <span class="points-badge">Last 7 days: ${Number(learner.last7DaysDemeritTotal || 0)} pts</span><br>
+          <span class="pill" style="display:inline-block;margin-top:7px">Total points: <strong>${Number(learner.runningDemeritTotal || 0)}</strong></span><br>
           <span class="status ${statusClass}" style="display:inline-block;margin-top:7px">${escapeHtml(learner.disciplineStatus)}</span>
           ${includeHistory ? `<br><button class="btn secondary" style="margin-top:8px" onclick="openHistory('${jsString(learner.learnerID)}')">History</button>` : ''}
         </div>
       </div>
     `;
+  }
+
+  function incidentCard(entry, allowHodResponse) {
+    const offenceLabel = entry.offenceCode
+      ? entry.offenceCode + ': ' + (entry.offenceDescription || '')
+      : (entry.category || 'Legacy incident');
+    const pending = !entry.hodAction || entry.hodAction === 'Pending HOD Review';
+    const actionOptions = (
+      (currentHodDashboard && currentHodDashboard.hodActionOptions) ||
+      (currentHistory && currentHistory.hodActionOptions) ||
+      []
+    ).map(function(action) {
+      return `<option value="${escapeAttr(action)}" ${entry.hodAction === action ? 'selected' : ''}>${escapeHtml(action)}</option>`;
+    }).join('');
+    const responseMeta = entry.hodRespondedAt
+      ? `<small>Responded by ${escapeHtml(entry.hodRespondedByName || entry.hodRespondedBy || 'HOD')} · ${escapeHtml(entry.hodRespondedAt)}</small>`
+      : '<small>Awaiting HOD review.</small>';
+
+    return `
+      <div class="incident" data-incident-id="${escapeAttr(entry.incidentID || '')}">
+        <div class="incident-top">
+          <div class="incident-date">${escapeHtml(entry.dateOccurred)} · ${escapeHtml(entry.timeOccurred)}</div>
+          <span class="points-badge">${Number(entry.demeritPoints || 0)} pts</span>
+        </div>
+        <p><strong>${escapeHtml(entry.learnerName || '')}</strong>${entry.className ? ' · ' + escapeHtml(entry.className) : ''}</p>
+        <p><strong>${escapeHtml(offenceLabel)}</strong></p>
+        <p>${escapeHtml(entry.description || '')}</p>
+        <small>Recorded by: ${escapeHtml(entry.teacherName || entry.teacherEmail || '')}</small><br>
+        <small>Entry recorded: ${escapeHtml(entry.dateRecorded || '')}</small>
+        <div class="hod-response ${pending ? 'pending' : ''}">
+          <strong>Action required</strong><br>
+          <span>${escapeHtml(entry.hodAction || 'Pending HOD Review')}</span><br>
+          ${responseMeta}
+          ${allowHodResponse ? `
+            <label for="hodAction_${escapeAttr(entry.incidentID)}">HOD response</label>
+            <select id="hodAction_${escapeAttr(entry.incidentID)}">
+              <option value="">Select response…</option>
+              ${actionOptions}
+            </select>
+            <button class="btn block" style="margin-top:9px" onclick="saveHodResponse('${jsString(entry.incidentID)}')">Save HOD Response</button>
+            <div id="hodNotice_${escapeAttr(entry.incidentID)}"></div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  function saveHodResponse(incidentID) {
+    const select = document.getElementById('hodAction_' + incidentID);
+    const notice = document.getElementById('hodNotice_' + incidentID);
+    const hodAction = select ? select.value : '';
+    if (!hodAction) {
+      if (notice) notice.innerHTML = '<div class="notice error">Select an HOD response.</div>';
+      return;
+    }
+
+    apiCall('updateHodAction', {
+      sessionToken: sessionToken,
+      incidentID: incidentID,
+      hodAction: hodAction
+    }).then(function(result) {
+      updateIncidentResponseInMemory(result);
+      if (currentHistory && (currentHistory.incidents || []).some(function(x) { return x.incidentID === incidentID; })) {
+        applyHistoryFilters();
+      } else if (currentHodView === 'recent') {
+        openHodRecentIncidents(false);
+      } else if (currentHodView === 'all') {
+        openHodAllIncidents(false);
+      }
+    }).catch(function(error) {
+      if (notice) notice.innerHTML = `<div class="notice error">${escapeHtml(errorMessage(error))}</div>`;
+      maybeHandleExpired(error);
+    });
+  }
+
+  function updateIncidentResponseInMemory(result) {
+    let wasPending = false;
+    const apply = function(entry) {
+      if (entry.incidentID !== result.incidentID) return;
+      if (!entry.hodAction || entry.hodAction === 'Pending HOD Review') wasPending = true;
+      entry.hodAction = result.hodAction;
+      entry.hodRespondedBy = result.hodRespondedBy;
+      entry.hodRespondedByName = result.hodRespondedByName;
+      entry.hodRespondedAt = result.hodRespondedAt;
+    };
+    if (currentHodDashboard) {
+      (currentHodDashboard.allIncidents || []).forEach(apply);
+      (currentHodDashboard.recentIncidents || []).forEach(apply);
+      if (wasPending) {
+        currentHodDashboard.pendingActionCount = Math.max(0, Number(currentHodDashboard.pendingActionCount || 0) - 1);
+      }
+    }
+    if (currentHistory) (currentHistory.incidents || []).forEach(apply);
+    if (currentTeacherDashboard) {
+      (currentTeacherDashboard.recentEntries || []).forEach(apply);
+      (currentTeacherDashboard.allEntries || []).forEach(apply);
+      (currentTeacherDashboard.registerRecentEntries || []).forEach(apply);
+    }
   }
 
   function filterHodTotals(term) {
@@ -1491,6 +1802,9 @@
 
   function startRecordIncident() {
     currentMode = 'record';
+    selectedLearnerIDs = [];
+    selectedLearner = null;
+    selectedOffenceCode = '';
     showRecordIncidentLanding();
   }
 
@@ -1529,7 +1843,7 @@
           autofocus
         >
         <div id="recordLearnerResults" class="list" style="margin-top:12px">
-          <p class="muted">Search above, or choose a class below.</p>
+          <p class="muted">Search above, or choose a class below. You may select more than one learner.</p>
         </div>
 
         <hr class="section-line">
@@ -1538,11 +1852,15 @@
           ${classButtons || '<p class="muted">No classes found.</p>'}
         </div>
 
+        <div id="selectedLearnerStrip"></div>
+
         <div class="btn-row no-print">
           <button class="btn secondary" onclick="appBack()">Back</button>
         </div>
       </div>
     `);
+
+    refreshSelectedLearnerStrip();
   }
 
   function runRecordLearnerSearch(term) {
@@ -1565,10 +1883,12 @@
     }).slice(0, 40);
 
     box.innerHTML = results.map(function(learner) {
+      const selected = selectedLearnerIDs.indexOf(learner.learnerID) >= 0;
       return `
-        <button class="list-btn" onclick="selectGlobalLearner('${jsString(learner.learnerID)}')">
+        <button class="list-btn ${selected ? 'selected' : ''}" data-select-learner="${escapeAttr(learner.learnerID)}" onclick="toggleLearnerSelection('${jsString(learner.learnerID)}')">
           <strong>${escapeHtml(learner.surname)}, ${escapeHtml(learner.name)}</strong><br>
           <span class="muted">${escapeHtml(learner.className)}</span>
+          <span class="selection-indicator">${selected ? '✓ Selected' : '+ Add learner'}</span>
         </button>
       `;
     }).join('') || '<p class="muted">No matching learners found.</p>';
@@ -1641,13 +1961,18 @@
     });
 
     const items = sorted.map(function(l, index) {
+      const selected = selectedLearnerIDs.indexOf(l.learnerID) >= 0;
+      const clickAction = currentMode === 'history'
+        ? `selectLearner('${jsString(l.learnerID)}')`
+        : `toggleLearnerSelection('${jsString(l.learnerID)}')`;
       return `
-        <button class="list-btn" onclick="selectLearner('${jsString(l.learnerID)}')">
+        <button class="list-btn ${selected ? 'selected' : ''}" data-select-learner="${escapeAttr(l.learnerID)}" onclick="${clickAction}">
           <span class="numbered-learner">
             <span class="learner-number">${index + 1}</span>
             <span>
               <strong>${escapeHtml(l.surname)}, ${escapeHtml(l.name)}</strong><br>
               <span class="muted">${escapeHtml(l.className)}</span>
+              ${currentMode === 'history' ? '' : `<br><span class="selection-indicator">${selected ? '✓ Selected' : '+ Add learner'}</span>`}
             </span>
           </span>
         </button>
@@ -1672,11 +1997,15 @@
           ${items || '<p class="muted">No learners found.</p>'}
         </div>
 
+        ${currentMode === 'history' ? '' : '<div id="selectedLearnerStrip"></div>'}
+
         <div class="btn-row no-print">
           <button class="btn secondary" onclick="appBack()">Back</button>
         </div>
       </div>
     `);
+
+    if (currentMode !== 'history') refreshSelectedLearnerStrip();
   }
 
   function filterLearnerButtons(term) {
@@ -1685,6 +2014,58 @@
     document.querySelectorAll('#learnerList .list-btn').forEach(function(btn) {
       btn.style.display = btn.textContent.toLowerCase().includes(q) ? '' : 'none';
     });
+  }
+
+  function toggleLearnerSelection(learnerID) {
+    const index = selectedLearnerIDs.indexOf(learnerID);
+    if (index >= 0) {
+      selectedLearnerIDs.splice(index, 1);
+    } else {
+      selectedLearnerIDs.push(learnerID);
+    }
+
+    document.querySelectorAll('[data-select-learner]').forEach(function(button) {
+      const id = String(button.getAttribute('data-select-learner') || '');
+      const isSelected = selectedLearnerIDs.indexOf(id) >= 0;
+      button.classList.toggle('selected', isSelected);
+      const indicator = button.querySelector('.selection-indicator');
+      if (indicator) indicator.textContent = isSelected ? '✓ Selected' : '+ Add learner';
+    });
+    refreshSelectedLearnerStrip();
+  }
+
+  function selectedLearnersList() {
+    return selectedLearnerIDs.map(function(id) {
+      return learners.find(function(learner) { return learner.learnerID === id; });
+    }).filter(Boolean);
+  }
+
+  function refreshSelectedLearnerStrip() {
+    const box = document.getElementById('selectedLearnerStrip');
+    if (!box) return;
+    const selected = selectedLearnersList();
+    if (!selected.length) {
+      box.innerHTML = '<div class="selected-strip"><strong>No learners selected</strong><div class="selected-names">Select one or more learners to continue.</div><button class="btn block" disabled>Continue</button></div>';
+      return;
+    }
+
+    box.innerHTML = `
+      <div class="selected-strip">
+        <strong>${selected.length} learner${selected.length === 1 ? '' : 's'} selected</strong>
+        <div class="selected-names">${selected.map(function(learner) {
+          return escapeHtml(learner.surname + ', ' + learner.name + ' (' + learner.className + ')');
+        }).join(' · ')}</div>
+        <button class="btn block" onclick="continueWithSelectedLearners()">Continue to Incident Details</button>
+      </div>
+    `;
+  }
+
+  function continueWithSelectedLearners() {
+    const selected = selectedLearnersList();
+    if (!selected.length) return;
+    selectedLearner = selected[0];
+    selectedOffenceCode = '';
+    showIncidentForm();
   }
 
   function selectLearner(learnerID) {
@@ -1697,7 +2078,9 @@
     if (currentMode === 'history') {
       openHistory(selectedLearner.learnerID);
     } else {
-      showIncidentForm(selectedLearner);
+      selectedLearnerIDs = [selectedLearner.learnerID];
+      selectedOffenceCode = '';
+      showIncidentForm();
     }
   }
 
@@ -1770,7 +2153,9 @@
     if (currentMode === 'history') {
       openHistory(learnerID);
     } else {
-      showIncidentForm(selectedLearner);
+      selectedLearnerIDs = [learnerID];
+      selectedOffenceCode = '';
+      showIncidentForm();
     }
   }
 
@@ -1807,14 +2192,19 @@
      INCIDENT FORM
   ========================================================= */
 
-  function showIncidentForm(learner) {
+  function showIncidentForm() {
+    const selected = selectedLearnersList();
+    if (!selected.length) return;
     const today = localDateISO();
-
-    const offenceOptions = offences.map(function(offence) {
+    const selectedNames = selected.map(function(learner) {
+      return `${escapeHtml(learner.surname)}, ${escapeHtml(learner.name)} <span class="muted">(${escapeHtml(learner.className)})</span>`;
+    }).join('<br>');
+    const fullOffenceList = offences.map(function(offence) {
       return `
-        <option value="${escapeAttr(offence.code)}">
-          ${escapeHtml(offence.code)} · ${escapeHtml(offence.description)} (${Number(offence.points)} pts)
-        </option>
+        <button class="list-btn" data-offence-search="${escapeAttr((offence.code + ' ' + offence.description).toLowerCase())}" onclick="chooseOffence('${jsString(offence.code)}')">
+          <strong>${escapeHtml(offence.code)} · ${escapeHtml(offence.description)}</strong><br>
+          <span class="points-badge" style="margin-top:6px">${Number(offence.points)} pts</span>
+        </button>
       `;
     }).join('');
 
@@ -1835,8 +2225,8 @@
     render(`
       <div class="card">
         <div class="learner-banner">
-          <strong>${escapeHtml(learner.surname)}, ${escapeHtml(learner.name)}</strong><br>
-          <span>${escapeHtml(learner.className)}</span>
+          <strong>${selected.length} learner${selected.length === 1 ? '' : 's'} selected</strong><br>
+          <span>${selectedNames}</span>
         </div>
 
         <h2>Record Incident</h2>
@@ -1857,11 +2247,8 @@
           }).join('')}
         </select>
 
-        <label for="offenceCode">Offence</label>
-        <select id="offenceCode" onchange="updateOffencePreview()">
-          <option value="">Select…</option>
-          ${offenceOptions}
-        </select>
+        <label>Offence</label>
+        <button id="offenceSelectButton" class="btn block" type="button" onclick="openOffencePicker()">Select Offence</button>
 
         <div id="offencePreview" class="offence-preview">
           Select an offence to see the fixed demerit value.
@@ -1885,29 +2272,90 @@
           <button class="btn secondary" onclick="appBack()">Back</button>
         </div>
       </div>
+
+      <div id="offencePicker" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="offencePickerTitle">
+        <div class="modal-card">
+          <h2 id="offencePickerTitle">Select Offence</h2>
+          <p class="muted">Choose a common offence, or open the complete list.</p>
+
+          <div class="offence-shortcuts">
+            <button class="offence-shortcut" onclick="chooseOffence('1-07')">Homework Not Done<small>1-07 · 5 points</small></button>
+            <button class="offence-shortcut" onclick="chooseOffence('1-02')">Incorrect Uniform<small>1-02 · 5 points</small></button>
+            <button class="offence-shortcut" onclick="chooseOffence('1-01')">Late for Class<small>1-01 · 5 points</small></button>
+            <button class="offence-shortcut" onclick="chooseOffence('2-04')">Disrupting Behaviour<small>2-04 · 10 points</small></button>
+          </div>
+
+          <button class="btn block secondary" onclick="showOtherOffences()">Other Offence</button>
+
+          <div id="otherOffenceList" class="hidden" style="margin-top:16px">
+            <label for="offenceSearch">Search complete offence list</label>
+            <input id="offenceSearch" type="text" placeholder="Search code or description…" oninput="filterOtherOffences(this.value)">
+            <div id="allOffenceButtons" class="list" style="margin-top:12px">${fullOffenceList}</div>
+          </div>
+
+          <button class="btn secondary block" style="margin-top:14px" onclick="closeOffencePicker()">Cancel</button>
+        </div>
+      </div>
     `);
+
+    updateOffencePreview();
+  }
+
+  function openOffencePicker() {
+    const modal = document.getElementById('offencePicker');
+    if (modal) modal.classList.remove('hidden');
+  }
+
+  function closeOffencePicker() {
+    const modal = document.getElementById('offencePicker');
+    if (modal) modal.classList.add('hidden');
+  }
+
+  function showOtherOffences() {
+    const list = document.getElementById('otherOffenceList');
+    if (list) {
+      list.classList.remove('hidden');
+      list.scrollIntoView({behavior:'smooth', block:'start'});
+    }
+  }
+
+  function filterOtherOffences(term) {
+    const q = String(term || '').trim().toLowerCase();
+    document.querySelectorAll('#allOffenceButtons [data-offence-search]').forEach(function(button) {
+      button.style.display = !q || String(button.dataset.offenceSearch || '').includes(q) ? '' : 'none';
+    });
+  }
+
+  function chooseOffence(code) {
+    const rule = offences.find(function(offence) { return offence.code === code; });
+    if (!rule) return;
+    selectedOffenceCode = rule.code;
+    closeOffencePicker();
+    updateOffencePreview();
   }
 
   function updateOffencePreview() {
-    const select = document.getElementById('offenceCode');
     const preview = document.getElementById('offencePreview');
-    if (!select || !preview) return;
+    const button = document.getElementById('offenceSelectButton');
+    if (!preview) return;
 
     const rule = offences.find(function(offence) {
-      return offence.code === select.value;
+      return offence.code === selectedOffenceCode;
     });
 
     preview.innerHTML = rule
       ? `<strong>${escapeHtml(rule.code)}</strong> · ${escapeHtml(rule.description)}<br><span class="points-badge" style="margin-top:8px">${Number(rule.points)} demerit points</span><p class="muted" style="margin:8px 0 0">The point value is fixed and cannot be edited.</p>`
       : 'Select an offence to see the fixed demerit value.';
+    if (button) button.textContent = rule ? 'Change Offence' : 'Select Offence';
   }
 
   function submitIncident() {
-    if (!selectedLearner) return;
+    const selected = selectedLearnersList();
+    if (!selected.length) return;
 
     const dateOccurred = document.getElementById('dateOccurred').value;
     const timeOccurred = document.getElementById('timeOccurred').value;
-    const offenceCode = document.getElementById('offenceCode').value;
+    const offenceCode = selectedOffenceCode;
     const description = document.getElementById('description').value.trim();
 
     if (!dateOccurred || !timeOccurred || !offenceCode || !description) {
@@ -1920,46 +2368,50 @@
     btn.disabled = true;
     btn.textContent = 'Submitting…';
 
-    apiCall('saveIncident', {
+    apiCall('saveIncidents', {
       sessionToken: sessionToken,
-      learnerID: selectedLearner.learnerID,
+      learnerIDs: selected.map(function(learner) { return learner.learnerID; }),
       offenceCode: offenceCode,
       description: description,
       dateOccurred: dateOccurred,
       timeOccurred: timeOccurred
     })
     .then(function(result) {
+      const saved = result.incidents || [];
       render(`
         <div class="card">
           <div class="notice success">
-            <strong>Incident recorded successfully.</strong>
+            <strong>${escapeHtml(result.message || 'Incident recorded successfully.')}</strong>
           </div>
 
-          <p>
-            <strong>${escapeHtml(selectedLearner.surname)}, ${escapeHtml(selectedLearner.name)}</strong>
-          </p>
-
-          <p>${escapeHtml(result.offenceCode || '')}: ${escapeHtml(result.offenceDescription || '')}</p>
-
-          <div class="summary-box">
-            <span class="points-badge">+${Number(result.demeritPoints || 0)} points</span>
-            <span class="pill">Running total: <strong>${Number(result.runningDemeritTotal || 0)}</strong></span>
-            <span class="status ${result.disciplineStatus === 'Detention Due' ? 'detention' : 'clear'}">${escapeHtml(result.disciplineStatus || '')}</span>
-          </div>
-
-          <p class="muted">
-            Reference: ${escapeHtml(result.incidentID || '')}
-          </p>
+          ${saved.map(function(item) {
+            return `
+              <div class="dashboard-row">
+                <div class="dashboard-row-main">
+                  <strong>${escapeHtml(item.learnerName)}</strong><br>
+                  <span class="muted">${escapeHtml(item.offenceCode)}: ${escapeHtml(item.offenceDescription)}</span><br>
+                  <small class="muted">Reference: ${escapeHtml(item.incidentID)}</small>
+                </div>
+                <div class="dashboard-row-side">
+                  <span class="points-badge">+${Number(item.demeritPoints || 0)} pts</span><br>
+                  <span class="pill" style="display:inline-block;margin-top:7px">Total: <strong>${Number(item.runningDemeritTotal || 0)}</strong></span><br>
+                  <span class="status ${item.disciplineStatus === 'Detention Due' ? 'detention' : 'clear'}" style="display:inline-block;margin-top:7px">${escapeHtml(item.disciplineStatus || '')}</span>
+                </div>
+              </div>
+            `;
+          }).join('')}
 
           <div class="btn-row">
             <button class="btn" onclick="showHome()">Return Home</button>
 
             <button
               class="btn secondary"
-              onclick="showIncidentForm(selectedLearner)"
+              onclick="selectedOffenceCode='';showIncidentForm()"
             >
-              Record Another for This Learner
+              Record Another for These Learners
             </button>
+
+            <button class="btn secondary" onclick="startRecordIncident()">Choose Different Learners</button>
           </div>
         </div>
       `);
@@ -2103,25 +2555,7 @@
     document.getElementById('historyList').innerHTML =
       filtered.length
       ? filtered.map(function(i) {
-          return `
-            <div class="incident">
-              <div class="incident-top">
-                <div class="incident-date">
-                  ${escapeHtml(i.dateOccurred)} · ${escapeHtml(i.timeOccurred)}
-                </div>
-
-                <div>
-                  <span class="points-badge">${Number(i.demeritPoints || 0)} pts</span>
-                </div>
-              </div>
-
-              <p><strong>${escapeHtml(i.offenceCode || '')}${i.offenceCode ? ': ' : ''}${escapeHtml(i.offenceDescription || i.category || 'Legacy incident')}</strong></p>
-              <p>${escapeHtml(i.description)}</p>
-
-              <small>Recorded by: ${escapeHtml(i.teacherName)}</small><br>
-              <small>Entry recorded: ${escapeHtml(i.dateRecorded)}</small>
-            </div>
-          `;
+          return incidentCard(i, Boolean(currentHistory.viewerCanRespond));
         }).join('')
       : '<p class="muted">No incidents match the selected filters.</p>';
   }
@@ -2202,6 +2636,8 @@
     learners = [];
     categories = [];
     offences = [];
+    selectedLearnerIDs = [];
+    selectedOffenceCode = '';
     currentTeacherDashboard = null;
     currentHodDashboard = null;
     adminUsers = [];
@@ -2260,7 +2696,10 @@
       selectedGrade: selectedGrade,
       selectedClass: selectedClass,
       selectedLearnerID: selectedLearner ? selectedLearner.learnerID : '',
+      selectedLearnerIDs: selectedLearnerIDs.slice(),
+      selectedOffenceCode: selectedOffenceCode,
       currentHistory: currentHistory,
+      currentHodView: currentHodView,
       selectedAdminUserID: selectedAdminUser ? selectedAdminUser.teacherID : '',
       scrollY: window.scrollY || 0
     };
@@ -2274,6 +2713,9 @@
     currentMode = snapshot.currentMode || '';
     selectedGrade = snapshot.selectedGrade || '';
     selectedClass = snapshot.selectedClass || '';
+    selectedLearnerIDs = snapshot.selectedLearnerIDs || [];
+    selectedOffenceCode = snapshot.selectedOffenceCode || '';
+    currentHodView = snapshot.currentHodView || '';
 
     selectedLearner =
       (snapshot.selectedLearnerID
@@ -2313,6 +2755,10 @@
 
     if (document.getElementById('historyList') && currentHistory) {
       applyHistoryFilters();
+    }
+
+    if (document.getElementById('selectedLearnerStrip')) {
+      refreshSelectedLearnerStrip();
     }
 
     window.scrollTo({
