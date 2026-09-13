@@ -503,7 +503,7 @@
         <strong>Add to Home Screen</strong>.
       </div>
 
-      <div class="version-footer">SCPS Discipline App · v0.93-4 alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JF Bosch Productions logo"></div>
+      <div class="version-footer">SCPS Discipline App · v0.93-4b alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JF Bosch Productions logo"></div>
     </div>
   </section>
 
@@ -511,7 +511,7 @@
     <img src="icon-192.png" alt="SCPS logo">
 
     <div class="header-title">
-      <h1>SCPS Discipline App <span class="header-version">v0.93-4 alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JF Bosch Productions logo"></span></h1>
+      <h1>SCPS Discipline App <span class="header-version">v0.93-4b alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JF Bosch Productions logo"></span></h1>
       <p>Sterkspruit Christian Private School</p>
     </div>
 
@@ -553,14 +553,14 @@
         Only use “Keep me signed in” on a private device that you control.
       </p>
 
-      <div class="version-footer">SCPS Discipline App · v0.93-4 alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JF Bosch Productions logo"></div>
+      <div class="version-footer">SCPS Discipline App · v0.93-4b alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JF Bosch Productions logo"></div>
     </section>
 
     <section id="appView" class="hidden"></section>
   </main>
 
 <script>
-  const APP_VERSION = 'v0.93-4 alpha';
+  const APP_VERSION = 'v0.93-4b alpha';
 
   let sessionToken = '';
   let rememberedToken = '';
@@ -603,7 +603,6 @@
   const API_BASE_URL = 'https://scps-discipline-api.jfbosch3.workers.dev';
   const API_URL = API_BASE_URL + '/api';
   const API_TIMEOUT_MS = 30000;
-  const WARM_TIMEOUT_MS = 30000;
   const REMOVE_INCIDENT_ACTION = 'Remove Incident — Entered in Error';
 
   let deferredInstallPrompt = null;
@@ -676,23 +675,6 @@
       ? window.crypto.randomUUID().replace(/-/g, '')
       : String(Date.now()) + Math.random().toString(36).slice(2);
     return String(prefix || 'REQ') + '-' + randomPart;
-  }
-
-  async function warmBackend() {
-    const controller = new AbortController();
-    const timer = setTimeout(function() { controller.abort(); }, WARM_TIMEOUT_MS);
-    try {
-      const response = await fetch(API_BASE_URL + '/api/ping', {
-        method: 'GET', cache: 'no-store', signal: controller.signal
-      });
-      const payload = await response.json();
-      if (!response.ok || !payload.ok) {
-        throw new Error(payload && payload.error ? payload.error : 'Backend warm-up failed.');
-      }
-      return true;
-    } finally {
-      clearTimeout(timer);
-    }
   }
 
   function isIOSDevice() {
@@ -787,10 +769,8 @@
     if (rememberedToken) {
       setLoginNotice('<span class="spinner"></span>Checking saved sign-in…', 'info');
 
-      warmBackend().catch(function() { return false; }).then(function() {
-        return apiCall('resumeRememberedLogin', {
-          rememberToken: rememberedToken
-        });
+      apiCall('resumeRememberedLogin', {
+        rememberToken: rememberedToken
       })
       .then(function(result) {
         if (result && result.success) {
@@ -834,19 +814,15 @@
 
     const btn = document.getElementById('loginBtn');
     btn.disabled = true;
-    btn.textContent = 'Connecting…';
-    setLoginNotice('<span class="spinner"></span>Waking the secure SCPS connection…', 'info');
+    btn.textContent = 'Signing in…';
+    setLoginNotice('<span class="spinner"></span>Signing in…', 'info');
     if (!loginRequestID) loginRequestID = makeRequestID('LOGIN');
 
-    warmBackend().catch(function() { return false; }).then(function() {
-      btn.textContent = 'Signing in…';
-      setLoginNotice('<span class="spinner"></span>Signing in…', 'info');
-      return apiCall('loginUser', {
-        email: email,
-        pin: pin,
-        rememberDevice: remember,
-        requestID: loginRequestID
-      });
+    apiCall('loginUser', {
+      email: email,
+      pin: pin,
+      rememberDevice: remember,
+      requestID: loginRequestID
     })
     .then(function(result) {
       loginRequestID = '';
@@ -1040,7 +1016,9 @@
         <p><strong>${escapeHtml(APP_VERSION)}</strong></p>
         <h3>Latest changes</h3>
         <ul>
-          <li>More reliable login with longer timeouts, backend warm-up and controlled safe retries.</li>
+          <li>Faster login and page loading by removing the extra warm-up request.</li>
+          <li>Normal app requests no longer rewrite or reformat Sheet schema.</li>
+          <li>Repeated Sheet reads are reduced with short-lived reference caches.</li>
           <li>HODs can remove an incorrect incident while preserving an audit record.</li>
           <li>Detention sessions can be marked completed while excess points carry forward.</li>
           <li>Teacher Dashboard shows incidents awaiting HOD response.</li>
