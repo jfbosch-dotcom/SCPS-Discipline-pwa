@@ -1,4 +1,4 @@
-const CACHE_NAME = 'scps-discipline-v093-3-alpha';
+const CACHE_NAME = 'scps-discipline-v093-4-alpha';
 
 const STATIC_FILES = [
   './',
@@ -7,7 +7,8 @@ const STATIC_FILES = [
   './icon-192.png',
   './icon-512.png',
   './apple-touch-icon.png',
-  './jb-productions-logo.png'
+  './jb-productions-logo.png',
+  './jb-productions-logo-large.png'
 ];
 
 self.addEventListener('install', event => {

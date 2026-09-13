@@ -251,6 +251,12 @@
       padding:14px
     }
 
+    button.stat-card{
+      width:100%;text-align:left;color:inherit;font:inherit;cursor:pointer
+    }
+
+    button.stat-card:active{transform:scale(.99)}
+
     .stat-card strong{display:block;color:var(--navy);font-size:24px}
     .stat-card span{font-size:12px;color:var(--muted)}
 
@@ -497,7 +503,7 @@
         <strong>Add to Home Screen</strong>.
       </div>
 
-      <div class="version-footer">SCPS Discipline App · v0.93-3 alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JF Bosch Productions logo"></div>
+      <div class="version-footer">SCPS Discipline App · v0.93-4 alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JF Bosch Productions logo"></div>
     </div>
   </section>
 
@@ -505,7 +511,7 @@
     <img src="icon-192.png" alt="SCPS logo">
 
     <div class="header-title">
-      <h1>SCPS Discipline App <span class="header-version">v0.93-3 alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JF Bosch Productions logo"></span></h1>
+      <h1>SCPS Discipline App <span class="header-version">v0.93-4 alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JF Bosch Productions logo"></span></h1>
       <p>Sterkspruit Christian Private School</p>
     </div>
 
@@ -547,14 +553,14 @@
         Only use “Keep me signed in” on a private device that you control.
       </p>
 
-      <div class="version-footer">SCPS Discipline App · v0.93-3 alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JF Bosch Productions logo"></div>
+      <div class="version-footer">SCPS Discipline App · v0.93-4 alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JF Bosch Productions logo"></div>
     </section>
 
     <section id="appView" class="hidden"></section>
   </main>
 
 <script>
-  const APP_VERSION = 'v0.93-3 alpha';
+  const APP_VERSION = 'v0.93-4 alpha';
 
   let sessionToken = '';
   let rememberedToken = '';
@@ -579,6 +585,10 @@
   let currentTeacherDashboard = null;
   let currentHodDashboard = null;
   let currentHodView = '';
+  let loginRequestID = '';
+  let incidentRequestID = '';
+  let observationRequestID = '';
+  let detentionRequestID = '';
 
   let adminUsers = [];
   let adminClasses = [];
@@ -592,7 +602,9 @@
 
   const API_BASE_URL = 'https://scps-discipline-api.jfbosch3.workers.dev';
   const API_URL = API_BASE_URL + '/api';
-  const API_TIMEOUT_MS = 15000;
+  const API_TIMEOUT_MS = 30000;
+  const WARM_TIMEOUT_MS = 30000;
+  const REMOVE_INCIDENT_ACTION = 'Remove Incident — Entered in Error';
 
   let deferredInstallPrompt = null;
 
@@ -622,23 +634,29 @@
       try {
         payload = await response.json();
       } catch (parseError) {
-        throw new Error('The SCPS server returned an unreadable response.');
+        const unreadableError = new Error('The SCPS server returned an unreadable response.');
+        unreadableError.code = 'UPSTREAM_INVALID_RESPONSE';
+        throw unreadableError;
       }
 
       if (!response.ok || !payload.ok) {
-        throw new Error(
+        const apiError = new Error(
           payload && payload.error
             ? payload.error
             : 'The SCPS server could not complete the request.'
         );
+        apiError.code = payload && payload.code ? payload.code : '';
+        throw apiError;
       }
 
       return payload.result;
     } catch (error) {
       if (error && error.name === 'AbortError') {
-        throw new Error(
-          'The SCPS server did not respond within 15 seconds. Please try again or switch between Wi-Fi and mobile data.'
+        const timeoutError = new Error(
+          'The SCPS server did not respond within 30 seconds. Please try again or switch between Wi-Fi and mobile data.'
         );
+        timeoutError.code = 'UPSTREAM_TIMEOUT';
+        throw timeoutError;
       }
 
       if (error instanceof TypeError) {
@@ -648,6 +666,30 @@
       }
 
       throw error;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  function makeRequestID(prefix) {
+    const randomPart = (window.crypto && typeof window.crypto.randomUUID === 'function')
+      ? window.crypto.randomUUID().replace(/-/g, '')
+      : String(Date.now()) + Math.random().toString(36).slice(2);
+    return String(prefix || 'REQ') + '-' + randomPart;
+  }
+
+  async function warmBackend() {
+    const controller = new AbortController();
+    const timer = setTimeout(function() { controller.abort(); }, WARM_TIMEOUT_MS);
+    try {
+      const response = await fetch(API_BASE_URL + '/api/ping', {
+        method: 'GET', cache: 'no-store', signal: controller.signal
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload && payload.error ? payload.error : 'Backend warm-up failed.');
+      }
+      return true;
     } finally {
       clearTimeout(timer);
     }
@@ -745,8 +787,10 @@
     if (rememberedToken) {
       setLoginNotice('<span class="spinner"></span>Checking saved sign-in…', 'info');
 
-      apiCall('resumeRememberedLogin', {
-        rememberToken: rememberedToken
+      warmBackend().catch(function() { return false; }).then(function() {
+        return apiCall('resumeRememberedLogin', {
+          rememberToken: rememberedToken
+        });
       })
       .then(function(result) {
         if (result && result.success) {
@@ -790,15 +834,22 @@
 
     const btn = document.getElementById('loginBtn');
     btn.disabled = true;
-    btn.textContent = 'Signing in…';
-    setLoginNotice('', '');
+    btn.textContent = 'Connecting…';
+    setLoginNotice('<span class="spinner"></span>Waking the secure SCPS connection…', 'info');
+    if (!loginRequestID) loginRequestID = makeRequestID('LOGIN');
 
-    apiCall('loginUser', {
-      email: email,
-      pin: pin,
-      rememberDevice: remember
+    warmBackend().catch(function() { return false; }).then(function() {
+      btn.textContent = 'Signing in…';
+      setLoginNotice('<span class="spinner"></span>Signing in…', 'info');
+      return apiCall('loginUser', {
+        email: email,
+        pin: pin,
+        rememberDevice: remember,
+        requestID: loginRequestID
+      });
     })
     .then(function(result) {
+      loginRequestID = '';
       btn.disabled = false;
       btn.textContent = 'Sign In';
 
@@ -819,6 +870,9 @@
       btn.disabled = false;
       btn.textContent = 'Sign In';
       setLoginNotice(errorMessage(error), 'error');
+      if (!error || ['UPSTREAM_TIMEOUT','UPSTREAM_INVALID_RESPONSE','UPSTREAM_ERROR'].indexOf(error.code) < 0) {
+        loginRequestID = '';
+      }
     });
   }
 
@@ -868,6 +922,10 @@
     currentClassHistory = null;
     currentTeacherDashboard = null;
     currentHodDashboard = null;
+    loginRequestID = '';
+    incidentRequestID = '';
+    observationRequestID = '';
+    detentionRequestID = '';
     adminUsers = [];
     adminClasses = [];
 
@@ -982,13 +1040,13 @@
         <p><strong>${escapeHtml(APP_VERSION)}</strong></p>
         <h3>Latest changes</h3>
         <ul>
-          <li>Faster single-learner incident selection with a separate multiple-learner mode.</li>
-          <li>New Record Observation option for warnings, parent contact and behaviour notes.</li>
-          <li>New HOD Class History summary and full-detail reports with date ranges.</li>
-          <li>Improved HOD Dashboard order and cleaner printed/PDF reports.</li>
-          <li>Teacher history button renamed to View My History.</li>
+          <li>More reliable login with longer timeouts, backend warm-up and controlled safe retries.</li>
+          <li>HODs can remove an incorrect incident while preserving an audit record.</li>
+          <li>Detention sessions can be marked completed while excess points carry forward.</li>
+          <li>Teacher Dashboard shows incidents awaiting HOD response.</li>
+          <li>High-resolution JF Bosch Productions logo on this About screen.</li>
         </ul>
-        <img class="about-logo" src="jb-productions-logo.png" alt="JF Bosch Productions logo">
+        <img class="about-logo" src="jb-productions-logo-large.png" alt="JF Bosch Productions logo">
         <div class="production-credit">JF Bosch Productions</div>
         <div class="btn-row no-print"><button class="btn secondary" onclick="appBack()">Back</button></div>
       </div>
@@ -1051,6 +1109,10 @@
             <strong>${(data.allEntries || []).length}</strong>
             <span>Total saved entries</span>
           </div>
+          <button class="stat-card" onclick="openMyPendingHodEntries()">
+            <strong>${Number(data.pendingHodCount || 0)}</strong>
+            <span>Incidents awaiting HOD response</span>
+          </button>
         </div>
 
         <h3>Recent Entries</h3>
@@ -1077,6 +1139,19 @@
         <h2>My History</h2>
         <p class="muted">${entries.length} saved entr${entries.length === 1 ? 'y' : 'ies'}, latest first.</p>
         ${entries.map(function(entry) { return entryCard(entry, false); }).join('') || '<p class="muted">You have not saved any entries.</p>'}
+        <div class="btn-row no-print"><button class="btn secondary" onclick="appBack()">Back</button></div>
+      </div>
+    `);
+  }
+
+  function openMyPendingHodEntries() {
+    const entries = (currentTeacherDashboard && currentTeacherDashboard.pendingHodEntries) || [];
+    render(`
+      <div class="card">
+        <div class="crumbs">Teacher Dashboard · Awaiting HOD Response</div>
+        <h2>Incidents Awaiting HOD Response</h2>
+        <p class="muted">${entries.length} incident${entries.length === 1 ? '' : 's'} you recorded still awaiting an HOD response.</p>
+        ${entries.map(function(entry) { return incidentCard(entry, false); }).join('') || '<div class="notice success">None of your incidents are awaiting an HOD response.</div>'}
         <div class="btn-row no-print"><button class="btn secondary" onclick="appBack()">Back</button></div>
       </div>
     `);
@@ -1255,8 +1330,8 @@
       <div class="card">
         <div class="crumbs">HOD Dashboard · Detention Due</div>
         <h2>Detention Due</h2>
-        <p class="muted">Learners at or above ${Number(data.detentionThreshold || detentionThreshold)} total points.</p>
-        ${due.map(function(learner) { return dashboardLearnerRow(learner, true); }).join('') || '<div class="notice success">No learners are currently at or above the detention threshold.</div>'}
+        <p class="muted">Learners with an active balance at or above ${Number(data.detentionThreshold || detentionThreshold)} points. Completing one detention serves 40 points; any excess carries forward.</p>
+        ${due.map(function(learner) { return dashboardLearnerRow(learner, true, true); }).join('') || '<div class="notice success">No learners are currently at or above the detention threshold.</div>'}
         <div class="btn-row no-print"><button class="btn secondary" onclick="appBack()">Back</button></div>
       </div>
     `);
@@ -1299,7 +1374,7 @@
       return `
         <button class="list-btn" onclick="openHistory('${jsString(learner.learnerID)}')">
           <strong>${escapeHtml(learner.surname)}, ${escapeHtml(learner.name)}</strong><br>
-          <span class="muted">${escapeHtml(learner.className)} · Total points: ${Number(summary.runningDemeritTotal || 0)}</span>
+          <span class="muted">${escapeHtml(learner.className)} · Active balance: ${Number(summary.activeDemeritBalance || 0)} · Lifetime: ${Number(summary.lifetimeDemeritTotal || summary.runningDemeritTotal || 0)}</span>
         </button>
       `;
     }).join('') || '<p class="muted">No matching learners found.</p>';
@@ -1417,10 +1492,10 @@
     const learnersList = (currentClassHistory && currentClassHistory.learners) || [];
     return `
       <table class="report-table">
-        <thead><tr><th>Learner</th><th>Inc.</th><th>Obs.</th><th>Period pts</th><th>Total pts</th><th>Status</th></tr></thead>
+        <thead><tr><th>Learner</th><th>Inc.</th><th>Obs.</th><th>Period pts</th><th>Lifetime</th><th>Served</th><th>Active</th><th>Status</th></tr></thead>
         <tbody>${learnersList.map(function(learner) {
-          return `<tr><td>${escapeHtml(learner.surname)}, ${escapeHtml(learner.name)}</td><td>${Number(learner.incidentCount || 0)}</td><td>${Number(learner.observationCount || 0)}</td><td>${Number(learner.periodPoints || 0)}</td><td>${Number(learner.accumulatedTotal || 0)}</td><td>${escapeHtml(learner.disciplineStatus || '')}</td></tr>`;
-        }).join('') || '<tr><td colspan="6">No learners found.</td></tr>'}</tbody>
+          return `<tr><td>${escapeHtml(learner.surname)}, ${escapeHtml(learner.name)}</td><td>${Number(learner.incidentCount || 0)}</td><td>${Number(learner.observationCount || 0)}</td><td>${Number(learner.periodPoints || 0)}</td><td>${Number(learner.accumulatedTotal || 0)}</td><td>${Number(learner.detentionPointsServed || 0)}</td><td>${Number(learner.activeDemeritBalance || 0)}</td><td>${escapeHtml(learner.disciplineStatus || '')}</td></tr>`;
+        }).join('') || '<tr><td colspan="8">No learners found.</td></tr>'}</tbody>
       </table>`;
   }
 
@@ -1475,7 +1550,7 @@
     applyHodIncidentDateFilter();
   }
 
-  function dashboardLearnerRow(learner, includeHistory) {
+  function dashboardLearnerRow(learner, includeHistory, allowDetentionCompletion) {
     const statusClass = learner.disciplineStatus === 'Detention Due'
       ? 'detention'
       : 'clear';
@@ -1492,12 +1567,85 @@
         </div>
         <div class="dashboard-row-side">
           <span class="points-badge">Last 7 days: ${Number(learner.last7DaysDemeritTotal || 0)} pts</span><br>
-          <span class="pill" style="display:inline-block;margin-top:7px">Total points: <strong>${Number(learner.runningDemeritTotal || 0)}</strong></span><br>
+          <span class="pill" style="display:inline-block;margin-top:7px">Active balance: <strong>${Number(learner.activeDemeritBalance ?? learner.runningDemeritTotal ?? 0)}</strong></span><br>
+          <span class="pill" style="display:inline-block;margin-top:7px">Lifetime points: <strong>${Number(learner.lifetimeDemeritTotal ?? learner.runningDemeritTotal ?? 0)}</strong></span><br>
+          ${Number(learner.detentionsCompleted || 0) ? `<span class="pill" style="display:inline-block;margin-top:7px">Detentions completed: <strong>${Number(learner.detentionsCompleted || 0)}</strong></span><br>` : ''}
           <span class="status ${statusClass}" style="display:inline-block;margin-top:7px">${escapeHtml(learner.disciplineStatus)}</span>
           ${includeHistory ? `<br><button class="btn secondary" style="margin-top:8px" onclick="openHistory('${jsString(learner.learnerID)}')">History</button>` : ''}
+          ${allowDetentionCompletion ? `<br><button class="btn success" style="margin-top:8px" onclick="openDetentionCompletion('${jsString(learner.learnerID)}')">Mark Detention Completed</button>` : ''}
         </div>
       </div>
     `;
+  }
+
+  function openDetentionCompletion(learnerID) {
+    const summary = ((currentHodDashboard && currentHodDashboard.learnerTotals) || []).find(function(item) {
+      return item.learnerID === learnerID;
+    });
+    if (!summary) return;
+    detentionRequestID = '';
+    render(`
+      <div class="card">
+        <div class="crumbs">HOD Dashboard · Detention Due · Complete</div>
+        <h2>Mark Detention Completed</h2>
+        <div class="learner-banner">
+          <strong>${escapeHtml(summary.surname)}, ${escapeHtml(summary.name)}</strong><br>
+          <span>${escapeHtml(summary.className)}</span><br>
+          <span class="pill" style="display:inline-block;margin-top:8px">Lifetime points: <strong>${Number(summary.lifetimeDemeritTotal || 0)}</strong></span>
+          <span class="pill" style="display:inline-block;margin-top:8px">Active balance: <strong>${Number(summary.activeDemeritBalance || 0)}</strong></span>
+        </div>
+        <div class="notice info">One completed detention serves 40 active points. Lifetime incident points remain unchanged and any excess points carry forward.</div>
+        <div id="detentionNotice"></div>
+        <label for="detentionDate">Date completed</label>
+        <input id="detentionDate" type="date" value="${localDateISO()}">
+        <label for="detentionNotes">Optional note</label>
+        <textarea id="detentionNotes" placeholder="For example: Attended Friday detention session."></textarea>
+        <div class="btn-row">
+          <button id="saveDetentionBtn" class="btn success" onclick="submitDetentionCompletion('${jsString(learnerID)}')">Confirm Completion</button>
+          <button class="btn secondary" onclick="appBack()">Back</button>
+        </div>
+      </div>
+    `);
+  }
+
+  function submitDetentionCompletion(learnerID) {
+    const dateCompleted = document.getElementById('detentionDate').value;
+    const notes = document.getElementById('detentionNotes').value.trim();
+    const notice = document.getElementById('detentionNotice');
+    const button = document.getElementById('saveDetentionBtn');
+    if (!dateCompleted) {
+      notice.innerHTML = '<div class="notice error">Select the date on which the detention was completed.</div>';
+      return;
+    }
+    if (!window.confirm('Confirm that this learner completed one detention session?')) return;
+    if (!detentionRequestID) detentionRequestID = makeRequestID('DET');
+    button.disabled = true;
+    button.textContent = 'Saving…';
+    apiCall('markDetentionCompleted', {
+      sessionToken: sessionToken,
+      learnerID: learnerID,
+      dateCompleted: dateCompleted,
+      notes: notes,
+      requestID: detentionRequestID
+    }).then(function(result) {
+      detentionRequestID = '';
+      render(`
+        <div class="card">
+          <div class="notice success"><strong>${escapeHtml(result.message || 'Detention marked as completed.')}</strong></div>
+          <div class="summary-box">
+            <span class="pill">Lifetime points: <strong>${Number(result.lifetimeDemeritTotal || 0)}</strong></span>
+            <span class="pill">Points served: <strong>${Number(result.detentionPointsServed || 0)}</strong></span>
+            <span class="pill">Active balance: <strong>${Number(result.activeDemeritBalance || 0)}</strong></span>
+          </div>
+          <div class="btn-row"><button class="btn" onclick="openHodDashboard()">Return to HOD Dashboard</button><button class="btn secondary" onclick="showHome()">Home</button></div>
+        </div>
+      `);
+    }).catch(function(error) {
+      button.disabled = false;
+      button.textContent = 'Confirm Completion';
+      notice.innerHTML = `<div class="notice error">${escapeHtml(errorMessage(error))}</div>`;
+      maybeHandleExpired(error);
+    });
   }
 
   function entryCard(entry, allowHodResponse) {
@@ -1576,6 +1724,11 @@
       return;
     }
 
+    if (hodAction === REMOVE_INCIDENT_ACTION) {
+      removeIncidentWithAudit(incidentID, notice);
+      return;
+    }
+
     apiCall('updateHodAction', {
       sessionToken: sessionToken,
       incidentID: incidentID,
@@ -1588,6 +1741,37 @@
         openHodRecentIncidents(false);
       } else if (currentHodView === 'all') {
         openHodAllIncidents(false);
+      }
+    }).catch(function(error) {
+      if (notice) notice.innerHTML = `<div class="notice error">${escapeHtml(errorMessage(error))}</div>`;
+      maybeHandleExpired(error);
+    });
+  }
+
+  function removeIncidentWithAudit(incidentID, notice) {
+    const reason = window.prompt('Why is this incident being removed? This reason will be kept in the audit record.');
+    if (reason === null) return;
+    const cleanReason = String(reason || '').trim();
+    if (cleanReason.length < 5) {
+      if (notice) notice.innerHTML = '<div class="notice error">Enter a clear removal reason of at least 5 characters.</div>';
+      return;
+    }
+    if (!window.confirm('Remove this incident from histories and point totals? The original Sheet row will be retained for audit.')) return;
+    if (notice) notice.innerHTML = '<div class="notice info"><span class="spinner"></span>Removing incident…</div>';
+
+    apiCall('removeIncident', {
+      sessionToken: sessionToken,
+      incidentID: incidentID,
+      removalReason: cleanReason
+    }).then(function(result) {
+      window.alert(result.message || 'Incident removed.');
+      const historyLearnerID = currentHistory && currentHistory.learner
+        ? currentHistory.learner.learnerID
+        : '';
+      if (historyLearnerID) {
+        openHistory(historyLearnerID);
+      } else {
+        openHodDashboard();
       }
     }).catch(function(error) {
       if (notice) notice.innerHTML = `<div class="notice error">${escapeHtml(errorMessage(error))}</div>`;
@@ -2016,6 +2200,7 @@
     selectedLearnerIDs = [];
     selectedLearner = null;
     selectedOffenceCode = '';
+    incidentRequestID = '';
     showRecordIncidentLanding();
   }
 
@@ -2025,6 +2210,7 @@
     selectedLearner = null;
     selectedLearnerIDs = [];
     observationLearner = null;
+    observationRequestID = '';
     showRecordObservationLanding();
   }
 
@@ -2102,14 +2288,17 @@
     }
     button.disabled = true;
     button.textContent = 'Saving…';
+    if (!observationRequestID) observationRequestID = makeRequestID('OBS');
     apiCall('saveObservation', {
       sessionToken: sessionToken,
       learnerID: learner.learnerID,
       observationType: observationType,
       details: details,
       dateOccurred: dateOccurred,
-      timeOccurred: timeOccurred
+      timeOccurred: timeOccurred,
+      requestID: observationRequestID
     }).then(function(result) {
+      observationRequestID = '';
       render(`
         <div class="card">
           <div class="notice success"><strong>Observation saved.</strong><br>${escapeHtml(result.learnerName || '')} · ${escapeHtml(result.observationType || '')} · 0 points</div>
@@ -2690,6 +2879,7 @@
     const btn = document.getElementById('saveBtn');
     btn.disabled = true;
     btn.textContent = 'Submitting…';
+    if (!incidentRequestID) incidentRequestID = makeRequestID('INC');
 
     apiCall('saveIncidents', {
       sessionToken: sessionToken,
@@ -2697,9 +2887,11 @@
       offenceCode: offenceCode,
       description: description,
       dateOccurred: dateOccurred,
-      timeOccurred: timeOccurred
+      timeOccurred: timeOccurred,
+      requestID: incidentRequestID
     })
     .then(function(result) {
+      incidentRequestID = '';
       const saved = result.incidents || [];
       render(`
         <div class="card">
@@ -2717,7 +2909,8 @@
                 </div>
                 <div class="dashboard-row-side">
                   <span class="points-badge">+${Number(item.demeritPoints || 0)} pts</span><br>
-                  <span class="pill" style="display:inline-block;margin-top:7px">Total: <strong>${Number(item.runningDemeritTotal || 0)}</strong></span><br>
+                  <span class="pill" style="display:inline-block;margin-top:7px">Lifetime: <strong>${Number(item.runningDemeritTotal || 0)}</strong></span><br>
+                  <span class="pill" style="display:inline-block;margin-top:7px">Active balance: <strong>${Number(item.activeDemeritBalance ?? item.runningDemeritTotal ?? 0)}</strong></span><br>
                   <span class="status ${item.disciplineStatus === 'Detention Due' ? 'detention' : 'clear'}" style="display:inline-block;margin-top:7px">${escapeHtml(item.disciplineStatus || '')}</span>
                 </div>
               </div>
@@ -2782,6 +2975,7 @@
 
     const learner = currentHistory.learner;
     const all = currentHistory.entries || currentHistory.incidents || [];
+    const detentions = currentHistory.detentions || [];
 
     const cats = [...new Set(
       all.map(function(x) {
@@ -2802,7 +2996,10 @@
         <div class="learner-banner">
           <strong>${escapeHtml(learner.surname)}, ${escapeHtml(learner.name)}</strong><br>
           <span>Class ${escapeHtml(learner.className)}</span><br>
-          <span class="points-badge" style="margin-top:8px">${Number(currentHistory.runningDemeritTotal || 0)} total demerit points</span>
+          <span class="pill" style="display:inline-block;margin-top:8px">Lifetime points: <strong>${Number(currentHistory.lifetimeDemeritTotal || currentHistory.runningDemeritTotal || 0)}</strong></span>
+          <span class="pill" style="display:inline-block;margin-top:8px">Detention points served: <strong>${Number(currentHistory.detentionPointsServed || 0)}</strong></span>
+          <span class="points-badge" style="margin-top:8px">Active balance: ${Number(currentHistory.activeDemeritBalance || 0)} points</span>
+          <span class="pill" style="display:inline-block;margin-top:8px">Detentions completed: <strong>${Number(currentHistory.detentionsCompleted || 0)}</strong></span>
           <span class="status ${currentHistory.disciplineStatus === 'Detention Due' ? 'detention' : 'clear'}" style="display:inline-block;margin-top:8px">${escapeHtml(currentHistory.disciplineStatus || '')}</span>
         </div>
 
@@ -2836,6 +3033,18 @@
 
         <div id="historySummary" class="summary-box"></div>
         <div id="historyList"></div>
+
+        <hr class="section-line">
+        <h3>Completed Detentions</h3>
+        ${detentions.length ? detentions.map(function(item) {
+          return `<div class="incident">
+            <div class="incident-top"><div class="incident-date">${escapeHtml(item.dateCompleted || '')}</div><span class="points-badge">${Number(item.pointsServed || 40)} pts served</span></div>
+            <p><strong>Detention completed</strong></p>
+            ${item.notes ? `<p>${escapeHtml(item.notes)}</p>` : ''}
+            <small>Marked by: ${escapeHtml(item.completedByName || item.completedBy || '')}</small><br>
+            <small>Entry recorded: ${escapeHtml(item.dateRecorded || '')}</small>
+          </div>`;
+        }).join('') : '<p class="muted">No completed detention sessions are recorded.</p>'}
       </div>
     `, false);
 
