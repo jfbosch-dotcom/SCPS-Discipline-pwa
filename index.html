@@ -126,6 +126,14 @@
 
     .production-credit{text-align:center;color:var(--navy);font-weight:700;font-size:18px}
 
+    .brand-history-link{
+      display:block;width:100%;border:0;background:transparent;padding:0;
+      color:inherit;cursor:pointer;border-radius:16px
+    }
+
+    .brand-history-link:focus-visible{outline:3px solid #8bb9dd;outline-offset:4px}
+    .brand-history-link:active{transform:scale(.99)}
+
     .version-history-list{display:grid;gap:10px;margin:14px 0}
 
     .version-history-btn{
@@ -520,7 +528,7 @@
         <strong>Add to Home Screen</strong>.
       </div>
 
-      <div class="version-footer">SCPS Discipline App · v0.94-1 alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JF Bosch Productions logo"></div>
+      <div class="version-footer">SCPS Discipline App · v0.94-1b alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></div>
     </div>
   </section>
 
@@ -528,7 +536,7 @@
     <img src="icon-192.png" alt="SCPS logo">
 
     <div class="header-title">
-      <h1>SCPS Discipline App <span class="header-version">v0.94-1 alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JF Bosch Productions logo"></span></h1>
+      <h1>SCPS Discipline App <span class="header-version">v0.94-1b alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></span></h1>
       <p>Sterkspruit Christian Private School</p>
     </div>
 
@@ -570,14 +578,14 @@
         Only use “Keep me signed in” on a private device that you control.
       </p>
 
-      <div class="version-footer">SCPS Discipline App · v0.94-1 alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JF Bosch Productions logo"></div>
+      <div class="version-footer">SCPS Discipline App · v0.94-1b alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></div>
     </section>
 
     <section id="appView" class="hidden"></section>
   </main>
 
 <script>
-  const APP_VERSION = 'v0.94-1 alpha';
+  const APP_VERSION = 'v0.94-1b alpha';
 
   let sessionToken = '';
   let rememberedToken = '';
@@ -611,9 +619,10 @@
   let adminClasses = [];
   let selectedAdminUser = null;
 
-  let navScreens = [];
   let navigationReady = false;
-  let restoringFromBack = false;
+  let currentScreenId = 'login';
+  let currentParentHandler = null;
+  let handlingBrowserBack = false;
 
   const REMEMBER_STORAGE_KEY = 'scpsDisciplineRememberToken';
 
@@ -624,9 +633,18 @@
 
   const VERSION_HISTORY = [
     {
+      key:'v0941b', version:'v0.94-1b alpha', summary:'Hierarchy Back navigation and HOD refinements',
+      changes:[
+        'Added a separate High Risk Learners management screen to the HOD Dashboard; its exact criteria remain intentionally unconfigured.',
+        'Reordered the HOD menu to Recent Incidents, Detention Due, High Risk Learners, Learner History, Class History and All Incidents.',
+        'Changed the About credit to JB Productions and made the logo itself open Version History.',
+        'Replaced visited-page replay with hierarchy-based Back navigation for the phone, browser and in-app Back controls.'
+      ]
+    },
+    {
       key:'v0941', version:'v0.94-1 alpha', summary:'About history and clearer in-app actions',
       changes:[
-        'About now opens a structured menu with Latest Changes, the JF Bosch Productions logo and a complete version history.',
+        'About opened a structured menu with Latest Changes, the JB Productions logo and a complete version history.',
         'Browser-generated alert, prompt and confirmation boxes were replaced with branded SCPS Discipline App dialogs.',
         'Removing an incident now uses quick reason buttons plus an Other Reason option and keeps the selected reason in the audit record.',
         'The working workers.dev API route, authentication, permissions and Google Sheet structure remain unchanged.'
@@ -887,11 +905,23 @@
 
   window.addEventListener('popstate', function() {
     if (!currentTeacher || !navigationReady) return;
+    if (handlingBrowserBack) return;
 
-    if (navScreens.length) {
-      const previousScreen = navScreens.pop();
-      restoreScreen(previousScreen);
+    if (currentScreenId === 'home') {
+      navigationReady = false;
+      handlingBrowserBack = true;
+      window.setTimeout(function() {
+        history.back();
+      }, 0);
+      window.setTimeout(function() {
+        handlingBrowserBack = false;
+        if (currentTeacher) navigationReady = true;
+      }, 750);
+      return;
     }
+
+    appBack();
+    history.pushState({scpsApp:true,guard:true}, '');
   });
 
   /* =========================================================
@@ -965,13 +995,11 @@
       document.getElementById('appHeader').classList.remove('hidden');
       document.getElementById('appView').classList.remove('hidden');
 
-      navScreens = [];
       navigationReady = false;
-
-      history.replaceState({scpsApp:true,root:true}, '');
-
       showHome();
       navigationReady = true;
+      history.replaceState({scpsApp:true,root:true}, '');
+      history.pushState({scpsApp:true,guard:true}, '');
     })
     .catch(handleServerFailure);
   }
@@ -1003,8 +1031,10 @@
 
     clearRememberedToken();
 
-    navScreens = [];
     navigationReady = false;
+    currentScreenId = 'login';
+    currentParentHandler = null;
+    handlingBrowserBack = false;
 
     history.replaceState({scpsLogin:true}, '');
 
@@ -1026,6 +1056,7 @@
 
   function showHome() {
     if (!currentTeacher) return;
+    setScreenContext('home', null);
 
     currentMode = '';
     selectedGrade = '';
@@ -1090,7 +1121,7 @@
 
         <div class="role-badge">${escapeHtml(displayRole(role))}</div>
 
-        <p class="muted">${escapeHtml(currentTeacher.email)} · ${escapeHtml(APP_VERSION)} <img class="personal-logo" src="jb-productions-logo.png" alt="JF Bosch Productions logo"></p>
+        <p class="muted">${escapeHtml(currentTeacher.email)} · ${escapeHtml(APP_VERSION)} <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></p>
 
         <div class="home-grid">
           ${actions}
@@ -1105,6 +1136,7 @@
   }
 
   function showAbout() {
+    setScreenContext('about', showHome);
     const latest = VERSION_HISTORY[0];
     render(`
       <div class="card">
@@ -1115,15 +1147,17 @@
         <ul>${latest.changes.map(function(change) {
           return `<li>${escapeHtml(change)}</li>`;
         }).join('')}</ul>
-        <img class="about-logo" src="jb-productions-logo-large.png" alt="JF Bosch Productions logo">
-        <div class="production-credit">JF Bosch Productions</div>
-        <button class="btn block" style="margin-top:22px" onclick="showVersionHistory()">History</button>
+        <button class="brand-history-link" onclick="showVersionHistory()" aria-label="Open version history">
+          <img class="about-logo" src="jb-productions-logo-large.png" alt="JB Productions logo">
+          <span class="production-credit">JB Productions</span>
+        </button>
         <div class="btn-row no-print"><button class="btn secondary" onclick="appBack()">Back</button></div>
       </div>
     `);
   }
 
   function showVersionHistory() {
+    setScreenContext('version-history', showAbout);
     render(`
       <div class="card">
         <div class="crumbs">About · History</div>
@@ -1145,6 +1179,7 @@
   function showVersionDetails(versionKey) {
     const item = VERSION_HISTORY.find(function(version) { return version.key === versionKey; });
     if (!item) return showVersionHistory();
+    setScreenContext('version-details', showVersionHistory);
     render(`
       <div class="card">
         <div class="crumbs">About · History · ${escapeHtml(item.version)}</div>
@@ -1229,6 +1264,7 @@
   ========================================================= */
 
   function openTeacherDashboard() {
+    setScreenContext('teacher-dashboard', showHome);
     render(`
       <div class="card">
         <div class="crumbs">Teacher Dashboard</div>
@@ -1248,6 +1284,7 @@
   }
 
   function renderTeacherDashboard() {
+    setScreenContext('teacher-dashboard', showHome);
     const data = currentTeacherDashboard || {};
     const recent = data.recentEntries || [];
     const registerClass = String(data.registerClass || '').trim();
@@ -1303,6 +1340,7 @@
   }
 
   function openMyEntryHistory() {
+    setScreenContext('teacher-history', renderTeacherDashboard);
     const entries = (currentTeacherDashboard && currentTeacherDashboard.allEntries) || [];
     render(`
       <div class="card">
@@ -1316,6 +1354,7 @@
   }
 
   function openMyPendingHodEntries() {
+    setScreenContext('teacher-pending-hod', renderTeacherDashboard);
     const entries = (currentTeacherDashboard && currentTeacherDashboard.pendingHodEntries) || [];
     render(`
       <div class="card">
@@ -1329,6 +1368,7 @@
   }
 
   function openMyRegisterClass() {
+    setScreenContext('teacher-register-class', renderTeacherDashboard);
     const data = currentTeacherDashboard || {};
     const className = String(data.registerClass || '').trim();
     if (!className) return;
@@ -1349,6 +1389,7 @@
   }
 
   function openRegisterClassSummary() {
+    setScreenContext('teacher-class-summary', renderTeacherDashboard);
     const data = currentTeacherDashboard || {};
     const className = String(data.registerClass || '').trim();
     const sorted = (data.registerLearners || []).slice().sort(function(a, b) {
@@ -1419,6 +1460,7 @@
   }
 
   function openHodDashboard() {
+    setScreenContext('hod-dashboard', showHome);
     render(`
       <div class="card">
         <div class="crumbs">HOD Dashboard</div>
@@ -1438,6 +1480,7 @@
   }
 
   function renderHodDashboard() {
+    setScreenContext('hod-dashboard', showHome);
     const data = currentHodDashboard || {};
     const detentionDue = data.detentionDue || [];
     const recent = data.recentIncidents || [];
@@ -1472,6 +1515,10 @@
             <strong>Detention Due</strong>
             <span>Learners who have reached ${Number(data.detentionThreshold || detentionThreshold)} points.</span>
           </button>
+          <button class="home-action compact-action" onclick="openHighRiskLearners()">
+            <strong>High Risk Learners</strong>
+            <span>Open the separate learner-support management view.</span>
+          </button>
           <button class="home-action compact-action" onclick="openHodLearnerHistory()">
             <strong>Learner History</strong>
             <span>Search a learner and open the full incident record.</span>
@@ -1494,6 +1541,7 @@
   }
 
   function openDetentionDue() {
+    setScreenContext('hod-detention-due', renderHodDashboard);
     currentHodView = 'detention';
     const data = currentHodDashboard || {};
     const due = data.detentionDue || [];
@@ -1508,7 +1556,26 @@
     `);
   }
 
+  function openHighRiskLearners() {
+    setScreenContext('hod-high-risk', renderHodDashboard);
+    currentHodView = 'high-risk';
+    render(`
+      <div class="card">
+        <div class="crumbs">HOD Dashboard · High Risk Learners</div>
+        <h2>High Risk Learners</h2>
+        <div class="notice info">
+          <strong>Management view ready — criteria not configured yet.</strong><br>
+          This screen is intentionally separate from Detention Due. No learner is labelled high risk until SCPS defines the agreed indicators and thresholds.
+        </div>
+        <h3>Planned purpose</h3>
+        <p class="muted">This view will help HODs identify learners needing early support or intervention based on the criteria approved by the school.</p>
+        <div class="btn-row no-print"><button class="btn secondary" onclick="appBack()">Back</button></div>
+      </div>
+    `);
+  }
+
   function openHodLearnerHistory() {
+    setScreenContext('hod-learner-history', renderHodDashboard);
     currentHodView = 'learner-history';
     render(`
       <div class="card">
@@ -1551,7 +1618,8 @@
     }).join('') || '<p class="muted">No matching learners found.</p>';
   }
 
-  function openHodRecentIncidents(pushHistory = true) {
+  function openHodRecentIncidents() {
+    setScreenContext('hod-recent-incidents', renderHodDashboard);
     currentHodView = 'recent';
     const incidents = (currentHodDashboard && currentHodDashboard.recentIncidents) || [];
     render(`
@@ -1562,10 +1630,11 @@
         ${incidents.map(function(entry) { return incidentCard(entry, true); }).join('') || '<p class="muted">No incidents in the last 7 days.</p>'}
         <div class="btn-row no-print"><button class="btn secondary" onclick="appBack()">Back</button></div>
       </div>
-    `, pushHistory);
+    `);
   }
 
   function openClassHistorySetup() {
+    setScreenContext('hod-class-history', renderHodDashboard);
     currentHodView = 'class-history';
     const classOptions = (appClasses.length ? appClasses : [...new Set(learners.map(function(x) { return x.className; }).filter(Boolean))])
       .map(function(className) {
@@ -1623,6 +1692,7 @@
   }
 
   function showClassHistoryReportChoices() {
+    setScreenContext('hod-class-report-options', openClassHistorySetup);
     const data = currentClassHistory || {};
     render(`
       <div class="card">
@@ -1671,15 +1741,18 @@
   }
 
   function renderClassSummaryReport() {
+    setScreenContext('hod-class-summary-report', showClassHistoryReportChoices);
     render(`<div class="card">${classReportHeader('Class History Summary')}${classSummaryTable()}<div class="btn-row no-print"><button class="btn" onclick="window.print()">Print / Save as PDF</button><button class="btn secondary" onclick="appBack()">Back</button></div></div>`);
   }
 
   function renderClassFullReport() {
+    setScreenContext('hod-class-full-report', showClassHistoryReportChoices);
     const entries = (currentClassHistory && currentClassHistory.entries) || [];
     render(`<div class="card">${classReportHeader('Class History — Full Details')}${classSummaryTable()}<hr class="section-line"><h3>Full Entries</h3>${entries.map(function(entry) { return entryCard(entry, false); }).join('') || '<p class="muted">No entries in this date range.</p>'}<div class="btn-row no-print"><button class="btn" onclick="window.print()">Print / Save as PDF</button><button class="btn secondary" onclick="appBack()">Back</button></div></div>`);
   }
 
-  function openHodAllIncidents(pushHistory = true) {
+  function openHodAllIncidents() {
+    setScreenContext('hod-all-incidents', renderHodDashboard);
     currentHodView = 'all';
     render(`
       <div class="card">
@@ -1697,7 +1770,7 @@
         <div id="hodAllList"></div>
         <div class="btn-row no-print"><button class="btn secondary" onclick="appBack()">Back</button></div>
       </div>
-    `, pushHistory);
+    `);
     applyHodIncidentDateFilter();
   }
 
@@ -1750,6 +1823,7 @@
   }
 
   function openDetentionCompletion(learnerID) {
+    setScreenContext('hod-detention-completion', openDetentionDue);
     const summary = ((currentHodDashboard && currentHodDashboard.learnerTotals) || []).find(function(item) {
       return item.learnerID === learnerID;
     });
@@ -1915,9 +1989,9 @@
       if (currentHistory && (currentHistory.incidents || []).some(function(x) { return x.incidentID === incidentID; })) {
         applyHistoryFilters();
       } else if (currentHodView === 'recent') {
-        openHodRecentIncidents(false);
+        openHodRecentIncidents();
       } else if (currentHodView === 'all') {
-        openHodAllIncidents(false);
+        openHodAllIncidents();
       }
     }).catch(function(error) {
       if (notice) notice.innerHTML = `<div class="notice error">${escapeHtml(errorMessage(error))}</div>`;
@@ -2082,6 +2156,7 @@
   ========================================================= */
 
   function openManageUsers() {
+    setScreenContext('manage-users', showHome);
     render(`
       <div class="card">
         <div class="crumbs">Admin</div>
@@ -2102,6 +2177,7 @@
   }
 
   function renderAdminUserList() {
+    setScreenContext('manage-users', showHome);
     const rows = adminUsers.map(function(u) {
       const roleText = displayRole(u.role);
       const classText = u.role === 'RegisterTeacher' && u.registerClass
@@ -2161,6 +2237,7 @@
   }
 
   function showAddAdminUser() {
+    setScreenContext('manage-user-form', renderAdminUserList);
     selectedAdminUser = null;
 
     renderAdminUserForm({
@@ -2181,10 +2258,12 @@
     if (!user) return;
 
     selectedAdminUser = user;
+    setScreenContext('manage-user-form', renderAdminUserList);
     renderAdminUserForm(user, false);
   }
 
   function renderAdminUserForm(user, isNew) {
+    setScreenContext('manage-user-form', renderAdminUserList);
     const role = normalRole(user.role || 'Teacher');
     const classOptions = adminClasses.map(function(c) {
       return `
@@ -2470,6 +2549,7 @@
   }
 
   function showRecordObservationLanding() {
+    setScreenContext('record-observation', showHome);
     const classes = [...new Set(learners.map(function(learner) { return learner.className; }).filter(Boolean))]
       .sort(function(a, b) { return a.localeCompare(b, undefined, {numeric:true, sensitivity:'base'}); });
     render(`
@@ -2507,6 +2587,7 @@
   }
 
   function showObservationForm() {
+    setScreenContext('observation-form', returnToObservationLearnerSelection);
     const learner = observationLearner || selectedLearner;
     if (!learner) return;
     const periods = ['Before School','Period 1','Period 2','Period 3','Break','Period 4','Period 5','Period 6','Period 7','After School','Other'];
@@ -2554,6 +2635,7 @@
       requestID: observationRequestID
     }).then(function(result) {
       observationRequestID = '';
+      setScreenContext('observation-saved', showRecordObservationLanding);
       render(`
         <div class="card">
           <div class="notice success"><strong>Observation saved.</strong><br>${escapeHtml(result.learnerName || '')} · ${escapeHtml(result.observationType || '')} · 0 points</div>
@@ -2569,6 +2651,7 @@
   }
 
   function showRecordIncidentLanding() {
+    setScreenContext('record-incident', showHome);
     const classes = [...new Set(
       learners
         .map(function(learner) { return learner.className; })
@@ -2655,6 +2738,10 @@
   }
 
   function showClassSelection() {
+    setScreenContext(
+      'select-class',
+      currentMode === 'record' ? showRecordIncidentLanding : showHome
+    );
     const classes = [...new Set(
       learners
         .map(function(x) { return x.className; })
@@ -2711,6 +2798,12 @@
   }
 
   function showLearnerList(list, title) {
+    setScreenContext(
+      'select-learner',
+      currentMode === 'observation'
+        ? showRecordObservationLanding
+        : (currentMode === 'record' ? showRecordIncidentLanding : showClassSelection)
+    );
     const sorted = [...list].sort(function(a,b) {
       return (a.surname + '|' + a.name).localeCompare(b.surname + '|' + b.name);
     });
@@ -2853,6 +2946,7 @@
 
   function startGlobalLearnerSearch(forHistory) {
     currentMode = forHistory ? 'history' : 'record';
+    setScreenContext('global-learner-search', forHistory ? showHome : showRecordIncidentLanding);
 
     render(`
       <div class="card">
@@ -2928,6 +3022,7 @@
 
   function showMyClassHistory() {
     currentMode = 'history';
+    setScreenContext('my-class-history', renderTeacherDashboard);
 
     const cls = String(currentTeacher.registerClass || '').trim();
 
@@ -2960,6 +3055,7 @@
   ========================================================= */
 
   function showIncidentForm() {
+    setScreenContext('incident-form', returnToIncidentLearnerSelection);
     const selected = selectedLearnersList();
     if (!selected.length) return;
     const today = localDateISO();
@@ -3148,6 +3244,7 @@
     .then(function(result) {
       incidentRequestID = '';
       const saved = result.incidents || [];
+      setScreenContext('incident-saved', showRecordIncidentLanding);
       render(`
         <div class="card">
           <div class="notice success">
@@ -3203,6 +3300,10 @@
   ========================================================= */
 
   function openHistory(learnerID) {
+    const historyParent = currentScreenId.indexOf('hod-') === 0
+      ? renderHodDashboard
+      : (currentScreenId.indexOf('teacher-') === 0 ? renderTeacherDashboard : showHome);
+    setScreenContext('learner-history-record', historyParent);
     render(`
       <div class="card">
         <h2>Learner History</h2>
@@ -3440,8 +3541,10 @@
 
     clearRememberedToken();
 
-    navScreens = [];
     navigationReady = false;
+    currentScreenId = 'login';
+    currentParentHandler = null;
+    handlingBrowserBack = false;
 
     history.replaceState({scpsLogin:true}, '');
 
@@ -3466,146 +3569,53 @@
   }
 
   /* =========================================================
-     NAVIGATION HISTORY
+     HIERARCHY-BASED NAVIGATION
   ========================================================= */
 
-  function captureScreen() {
-    const view = document.getElementById('appView');
-    const controls = [];
-
-    if (view) {
-      view.querySelectorAll('input,select,textarea').forEach(function(el) {
-        controls.push({
-          id: el.id || '',
-          type: el.type || '',
-          value: el.value,
-          checked: !!el.checked
-        });
-      });
-    }
-
-    return {
-      html: view ? view.innerHTML : '',
-      controls: controls,
-      currentMode: currentMode,
-      selectedGrade: selectedGrade,
-      selectedClass: selectedClass,
-      selectedLearnerID: selectedLearner ? selectedLearner.learnerID : '',
-      selectedLearnerIDs: selectedLearnerIDs.slice(),
-      selectedOffenceCode: selectedOffenceCode,
-      multiLearnerMode: multiLearnerMode,
-      observationLearnerID: observationLearner ? observationLearner.learnerID : '',
-      currentHistory: currentHistory,
-      currentClassHistory: currentClassHistory,
-      currentHodView: currentHodView,
-      selectedAdminUserID: selectedAdminUser ? selectedAdminUser.teacherID : '',
-      scrollY: window.scrollY || 0
-    };
+  function setScreenContext(screenId, parentHandler) {
+    currentScreenId = screenId || 'home';
+    currentParentHandler = typeof parentHandler === 'function' ? parentHandler : null;
   }
 
-  function restoreScreen(snapshot) {
-    if (!snapshot) return;
-
-    restoringFromBack = true;
-
-    currentMode = snapshot.currentMode || '';
-    selectedGrade = snapshot.selectedGrade || '';
-    selectedClass = snapshot.selectedClass || '';
-    selectedLearnerIDs = snapshot.selectedLearnerIDs || [];
-    selectedOffenceCode = snapshot.selectedOffenceCode || '';
-    multiLearnerMode = Boolean(snapshot.multiLearnerMode);
-    currentHodView = snapshot.currentHodView || '';
-
-    selectedLearner =
-      (snapshot.selectedLearnerID
-        ? learners.find(function(x) {
-            return x.learnerID === snapshot.selectedLearnerID;
-          })
-        : null) || null;
-
-    currentHistory = snapshot.currentHistory || null;
-    currentClassHistory = snapshot.currentClassHistory || null;
-    observationLearner = snapshot.observationLearnerID
-      ? learners.find(function(x) { return x.learnerID === snapshot.observationLearnerID; }) || null
-      : null;
-
-    selectedAdminUser =
-      (snapshot.selectedAdminUserID
-        ? adminUsers.find(function(x) {
-            return x.teacherID === snapshot.selectedAdminUserID;
-          })
-        : null) || null;
-
+  function render(html) {
     const view = document.getElementById('appView');
-    view.innerHTML = snapshot.html || '';
-
-    (snapshot.controls || []).forEach(function(c) {
-      if (!c.id) return;
-
-      const el = document.getElementById(c.id);
-      if (!el) return;
-
-      if (c.type === 'checkbox' || c.type === 'radio') {
-        el.checked = !!c.checked;
-      } else {
-        el.value = c.value;
-      }
-    });
-
-    if (document.getElementById('adminRole')) {
-      updateRegisterClassVisibility();
-    }
-
-    if (document.getElementById('historyList') && currentHistory) {
-      applyHistoryFilters();
-    }
-
-    if (document.getElementById('selectedLearnerStrip')) {
-      refreshSelectedLearnerStrip();
-    }
-
-    window.scrollTo({
-      top: snapshot.scrollY || 0,
-      behavior: 'auto'
-    });
-
-    restoringFromBack = false;
-  }
-
-  function render(html, pushHistory = true) {
-    const view = document.getElementById('appView');
-
-    if (
-      navigationReady &&
-      pushHistory &&
-      !restoringFromBack &&
-      view &&
-      view.innerHTML
-    ) {
-      navScreens.push(captureScreen());
-
-      history.pushState(
-        {
-          scpsApp:true,
-          depth:navScreens.length
-        },
-        ''
-      );
-    }
-
     view.innerHTML = html;
-
-    window.scrollTo({
-      top:0,
-      behavior:'smooth'
-    });
+    window.scrollTo({top:0, behavior:'smooth'});
   }
 
   function appBack() {
-    if (navScreens.length) {
-      history.back();
-    } else {
+    if (!currentTeacher) return;
+    if (typeof currentParentHandler === 'function') {
+      const parent = currentParentHandler;
+      currentParentHandler = null;
+      parent();
+      return;
+    }
+
+    if (currentScreenId !== 'home') {
       showHome();
+    }
+  }
+
+  function returnToIncidentLearnerSelection() {
+    if (selectedClass) {
+      const list = learners.filter(function(learner) {
+        return learner.className === selectedClass;
+      });
+      showLearnerList(list, 'Class ' + selectedClass);
+    } else {
+      showRecordIncidentLanding();
+    }
+  }
+
+  function returnToObservationLearnerSelection() {
+    if (selectedClass) {
+      const list = learners.filter(function(learner) {
+        return learner.className === selectedClass;
+      });
+      showLearnerList(list, 'Class ' + selectedClass);
+    } else {
+      showRecordObservationLanding();
     }
   }
 
