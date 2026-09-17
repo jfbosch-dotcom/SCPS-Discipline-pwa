@@ -126,6 +126,23 @@
 
     .production-credit{text-align:center;color:var(--navy);font-weight:700;font-size:18px}
 
+    .version-history-list{display:grid;gap:10px;margin:14px 0}
+
+    .version-history-btn{
+      width:100%;border:1px solid var(--line);border-radius:12px;background:white;
+      color:var(--navy);padding:14px 15px;text-align:left;cursor:pointer
+    }
+
+    .version-history-btn strong{display:block;font-size:17px}
+    .version-history-btn span{display:block;color:var(--muted);font-size:13px;margin-top:4px}
+
+    .dialog-message{line-height:1.5;margin:0 0 14px}
+    .dialog-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:18px}
+
+    .reason-choice.selected{
+      outline:3px solid #8bb9dd;background:var(--blue)
+    }
+
     .header-version{
       display:inline-flex;
       align-items:center;
@@ -503,7 +520,7 @@
         <strong>Add to Home Screen</strong>.
       </div>
 
-      <div class="version-footer">SCPS Discipline App · v0.93-4b alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JF Bosch Productions logo"></div>
+      <div class="version-footer">SCPS Discipline App · v0.94-1 alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JF Bosch Productions logo"></div>
     </div>
   </section>
 
@@ -511,7 +528,7 @@
     <img src="icon-192.png" alt="SCPS logo">
 
     <div class="header-title">
-      <h1>SCPS Discipline App <span class="header-version">v0.93-4b alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JF Bosch Productions logo"></span></h1>
+      <h1>SCPS Discipline App <span class="header-version">v0.94-1 alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JF Bosch Productions logo"></span></h1>
       <p>Sterkspruit Christian Private School</p>
     </div>
 
@@ -553,14 +570,14 @@
         Only use “Keep me signed in” on a private device that you control.
       </p>
 
-      <div class="version-footer">SCPS Discipline App · v0.93-4b alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JF Bosch Productions logo"></div>
+      <div class="version-footer">SCPS Discipline App · v0.94-1 alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JF Bosch Productions logo"></div>
     </section>
 
     <section id="appView" class="hidden"></section>
   </main>
 
 <script>
-  const APP_VERSION = 'v0.93-4b alpha';
+  const APP_VERSION = 'v0.94-1 alpha';
 
   let sessionToken = '';
   let rememberedToken = '';
@@ -604,6 +621,85 @@
   const API_URL = API_BASE_URL + '/api';
   const API_TIMEOUT_MS = 30000;
   const REMOVE_INCIDENT_ACTION = 'Remove Incident — Entered in Error';
+
+  const VERSION_HISTORY = [
+    {
+      key:'v0941', version:'v0.94-1 alpha', summary:'About history and clearer in-app actions',
+      changes:[
+        'About now opens a structured menu with Latest Changes, the JF Bosch Productions logo and a complete version history.',
+        'Browser-generated alert, prompt and confirmation boxes were replaced with branded SCPS Discipline App dialogs.',
+        'Removing an incident now uses quick reason buttons plus an Other Reason option and keeps the selected reason in the audit record.',
+        'The working workers.dev API route, authentication, permissions and Google Sheet structure remain unchanged.'
+      ]
+    },
+    {
+      key:'v0934b', version:'v0.93-4b alpha', summary:'Performance and connection correction',
+      changes:[
+        'Removed the separate backend warm-up request that slowed login.',
+        'Stopped normal requests from rerunning Sheet migration and formatting.',
+        'Added short-lived reference caches and reduced repeated Sheet reads.',
+        'Preserved incident removal, detention completion, observations and all v0.93-4 security controls.'
+      ]
+    },
+    {
+      key:'v0934', version:'v0.93-4 alpha', summary:'Incident removal and detention completion',
+      changes:[
+        'Added audited soft removal of incidents by HOD/Admin.',
+        'Added detention completion: 40 active points are served while lifetime history remains.',
+        'Added the teacher tile for incidents awaiting HOD response.',
+        'Upgraded the About screen to the high-resolution JF Bosch Productions logo.'
+      ]
+    },
+    {
+      key:'v0933', version:'v0.93-3 alpha', summary:'Observations, reports and improved learner selection',
+      changes:[
+        'Added Record Observation for warnings, parent contact and behaviour notes.',
+        'Changed normal learner selection back to one tap, with a separate multiple-learner mode.',
+        'Added Class History with Summary and Full Details reports.',
+        'Refined the role-based Home menu, Teacher Dashboard and HOD Dashboard.'
+      ]
+    },
+    {
+      key:'v0932', version:'v0.93-2 alpha', summary:'Multiple learners, quick offences and dashboards',
+      changes:[
+        'Added multiple learners for the same offence.',
+        'Added four common-offence shortcuts and the full Other Offence list.',
+        'Added seven-day Teacher and HOD views, Learner History and All Incidents.',
+        'Added controlled HOD responses and stored their audit details.'
+      ]
+    },
+    {
+      key:'v0931', version:'v0.93-1 alpha', summary:'Demerit points and role-based home',
+      changes:[
+        'Added the approved 44-rule demerit list with server-enforced points.',
+        'Added learner search, numbered class lists and role-based Home actions.',
+        'Added running learner totals and the 40-point Detention Due threshold.',
+        'Preserved occurrence date/time separately from the submission timestamp.'
+      ]
+    },
+    {
+      key:'v092', version:'v0.92 alpha', summary:'No-iframe PWA architecture',
+      changes:[
+        'Moved the phone interface to the GitHub Pages PWA.',
+        'Added the Cloudflare Worker API bridge to Google Apps Script.',
+        'Removed the iPhone Google iframe/401 design problem.',
+        'Added mobile request timeouts, direct health testing and CORS-simple requests.'
+      ]
+    },
+    {
+      key:'v091', version:'v0.91', summary:'Class selection and install improvements',
+      changes:[
+        'Added a visible version number.',
+        'Replaced Grade then Class navigation with one two-column Select Class screen.',
+        'Generated class buttons from the Learners sheet.',
+        'Improved PWA installation guidance and update caching.'
+      ]
+    }
+  ];
+
+  let appDialogResolver = null;
+  let pendingIncidentRemoval = null;
+  let selectedRemovalReason = '';
 
   let deferredInstallPrompt = null;
 
@@ -1009,26 +1105,123 @@
   }
 
   function showAbout() {
+    const latest = VERSION_HISTORY[0];
     render(`
       <div class="card">
         <div class="crumbs">About</div>
         <h2>About SCPS Discipline App</h2>
         <p><strong>${escapeHtml(APP_VERSION)}</strong></p>
         <h3>Latest changes</h3>
-        <ul>
-          <li>Faster login and page loading by removing the extra warm-up request.</li>
-          <li>Normal app requests no longer rewrite or reformat Sheet schema.</li>
-          <li>Repeated Sheet reads are reduced with short-lived reference caches.</li>
-          <li>HODs can remove an incorrect incident while preserving an audit record.</li>
-          <li>Detention sessions can be marked completed while excess points carry forward.</li>
-          <li>Teacher Dashboard shows incidents awaiting HOD response.</li>
-          <li>High-resolution JF Bosch Productions logo on this About screen.</li>
-        </ul>
+        <ul>${latest.changes.map(function(change) {
+          return `<li>${escapeHtml(change)}</li>`;
+        }).join('')}</ul>
         <img class="about-logo" src="jb-productions-logo-large.png" alt="JF Bosch Productions logo">
         <div class="production-credit">JF Bosch Productions</div>
+        <button class="btn block" style="margin-top:22px" onclick="showVersionHistory()">History</button>
         <div class="btn-row no-print"><button class="btn secondary" onclick="appBack()">Back</button></div>
       </div>
     `);
+  }
+
+  function showVersionHistory() {
+    render(`
+      <div class="card">
+        <div class="crumbs">About · History</div>
+        <h2>Version History</h2>
+        <p class="muted">Choose a version to see the main changes introduced in that release.</p>
+        <div class="version-history-list">
+          ${VERSION_HISTORY.map(function(item) {
+            return `<button class="version-history-btn" onclick="showVersionDetails('${jsString(item.key)}')">
+              <strong>${escapeHtml(item.version)}</strong>
+              <span>${escapeHtml(item.summary)}</span>
+            </button>`;
+          }).join('')}
+        </div>
+        <div class="btn-row"><button class="btn secondary" onclick="appBack()">Back</button></div>
+      </div>
+    `);
+  }
+
+  function showVersionDetails(versionKey) {
+    const item = VERSION_HISTORY.find(function(version) { return version.key === versionKey; });
+    if (!item) return showVersionHistory();
+    render(`
+      <div class="card">
+        <div class="crumbs">About · History · ${escapeHtml(item.version)}</div>
+        <h2>${escapeHtml(item.version)}</h2>
+        <p class="muted">${escapeHtml(item.summary)}</p>
+        <ul>${item.changes.map(function(change) {
+          return `<li>${escapeHtml(change)}</li>`;
+        }).join('')}</ul>
+        <div class="btn-row"><button class="btn secondary" onclick="appBack()">Back to History</button></div>
+      </div>
+    `);
+  }
+
+  function closeAppDialog(result) {
+    const modal = document.getElementById('scpsAppDialog');
+    if (modal) modal.remove();
+    const resolver = appDialogResolver;
+    appDialogResolver = null;
+    if (resolver) resolver(!!result);
+  }
+
+  function appConfirm(options) {
+    options = options || {};
+    const existing = document.getElementById('scpsAppDialog');
+    if (existing) existing.remove();
+    if (appDialogResolver) {
+      appDialogResolver(false);
+      appDialogResolver = null;
+    }
+
+    return new Promise(function(resolve) {
+      appDialogResolver = resolve;
+      const modal = document.createElement('div');
+      modal.id = 'scpsAppDialog';
+      modal.className = 'modal';
+      modal.setAttribute('role', 'dialog');
+      modal.setAttribute('aria-modal', 'true');
+      modal.innerHTML = `
+        <div class="modal-card">
+          <div class="crumbs">SCPS Discipline App</div>
+          <h2>${escapeHtml(options.title || 'Please Confirm')}</h2>
+          <p class="dialog-message">${escapeHtml(options.message || '')}</p>
+          <div class="dialog-actions">
+            <button class="btn secondary" id="scpsDialogCancel">${escapeHtml(options.cancelLabel || 'Cancel')}</button>
+            <button class="btn ${options.danger ? 'danger' : 'success'}" id="scpsDialogConfirm">${escapeHtml(options.confirmLabel || 'Confirm')}</button>
+          </div>
+        </div>`;
+      document.body.appendChild(modal);
+      document.getElementById('scpsDialogCancel').onclick = function() { closeAppDialog(false); };
+      document.getElementById('scpsDialogConfirm').onclick = function() { closeAppDialog(true); };
+    });
+  }
+
+  function appMessage(title, message, buttonLabel) {
+    const existing = document.getElementById('scpsAppDialog');
+    if (existing) existing.remove();
+    return new Promise(function(resolve) {
+      const modal = document.createElement('div');
+      modal.id = 'scpsAppDialog';
+      modal.className = 'modal';
+      modal.setAttribute('role', 'dialog');
+      modal.setAttribute('aria-modal', 'true');
+      modal.innerHTML = `
+        <div class="modal-card">
+          <div class="crumbs">SCPS Discipline App</div>
+          <h2>${escapeHtml(title || 'SCPS Discipline App')}</h2>
+          <p class="dialog-message">${escapeHtml(message || '')}</p>
+          <div class="dialog-actions">
+            <button class="btn success" id="scpsMessageClose">${escapeHtml(buttonLabel || 'OK')}</button>
+          </div>
+        </div>`;
+      document.body.appendChild(modal);
+      document.getElementById('scpsMessageClose').onclick = function() {
+        modal.remove();
+        resolve(true);
+      };
+    });
   }
 
   /* =========================================================
@@ -1595,34 +1788,40 @@
       notice.innerHTML = '<div class="notice error">Select the date on which the detention was completed.</div>';
       return;
     }
-    if (!window.confirm('Confirm that this learner completed one detention session?')) return;
-    if (!detentionRequestID) detentionRequestID = makeRequestID('DET');
-    button.disabled = true;
-    button.textContent = 'Saving…';
-    apiCall('markDetentionCompleted', {
-      sessionToken: sessionToken,
-      learnerID: learnerID,
-      dateCompleted: dateCompleted,
-      notes: notes,
-      requestID: detentionRequestID
-    }).then(function(result) {
-      detentionRequestID = '';
-      render(`
-        <div class="card">
-          <div class="notice success"><strong>${escapeHtml(result.message || 'Detention marked as completed.')}</strong></div>
-          <div class="summary-box">
-            <span class="pill">Lifetime points: <strong>${Number(result.lifetimeDemeritTotal || 0)}</strong></span>
-            <span class="pill">Points served: <strong>${Number(result.detentionPointsServed || 0)}</strong></span>
-            <span class="pill">Active balance: <strong>${Number(result.activeDemeritBalance || 0)}</strong></span>
+    appConfirm({
+      title: 'Complete Detention',
+      message: 'Confirm that this learner completed one detention session. Forty active points will be served and the lifetime incident history will remain unchanged.',
+      confirmLabel: 'Mark Completed'
+    }).then(function(confirmed) {
+      if (!confirmed) return;
+      if (!detentionRequestID) detentionRequestID = makeRequestID('DET');
+      button.disabled = true;
+      button.textContent = 'Saving…';
+      apiCall('markDetentionCompleted', {
+        sessionToken: sessionToken,
+        learnerID: learnerID,
+        dateCompleted: dateCompleted,
+        notes: notes,
+        requestID: detentionRequestID
+      }).then(function(result) {
+        detentionRequestID = '';
+        render(`
+          <div class="card">
+            <div class="notice success"><strong>${escapeHtml(result.message || 'Detention marked as completed.')}</strong></div>
+            <div class="summary-box">
+              <span class="pill">Lifetime points: <strong>${Number(result.lifetimeDemeritTotal || 0)}</strong></span>
+              <span class="pill">Points served: <strong>${Number(result.detentionPointsServed || 0)}</strong></span>
+              <span class="pill">Active balance: <strong>${Number(result.activeDemeritBalance || 0)}</strong></span>
+            </div>
+            <div class="btn-row"><button class="btn" onclick="openHodDashboard()">Return to HOD Dashboard</button><button class="btn secondary" onclick="showHome()">Home</button></div>
           </div>
-          <div class="btn-row"><button class="btn" onclick="openHodDashboard()">Return to HOD Dashboard</button><button class="btn secondary" onclick="showHome()">Home</button></div>
-        </div>
-      `);
-    }).catch(function(error) {
-      button.disabled = false;
-      button.textContent = 'Confirm Completion';
-      notice.innerHTML = `<div class="notice error">${escapeHtml(errorMessage(error))}</div>`;
-      maybeHandleExpired(error);
+        `);
+      }).catch(function(error) {
+        button.disabled = false;
+        button.textContent = 'Confirm Completion';
+        notice.innerHTML = `<div class="notice error">${escapeHtml(errorMessage(error))}</div>`;
+        maybeHandleExpired(error);
+      });
     });
   }
 
@@ -1727,32 +1926,107 @@
   }
 
   function removeIncidentWithAudit(incidentID, notice) {
-    const reason = window.prompt('Why is this incident being removed? This reason will be kept in the audit record.');
-    if (reason === null) return;
-    const cleanReason = String(reason || '').trim();
-    if (cleanReason.length < 5) {
-      if (notice) notice.innerHTML = '<div class="notice error">Enter a clear removal reason of at least 5 characters.</div>';
+    const existing = document.getElementById('scpsAppDialog');
+    if (existing) existing.remove();
+    pendingIncidentRemoval = {incidentID: incidentID, notice: notice};
+    selectedRemovalReason = '';
+
+    const modal = document.createElement('div');
+    modal.id = 'scpsAppDialog';
+    modal.className = 'modal';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.innerHTML = `
+      <div class="modal-card">
+        <div class="crumbs">SCPS Discipline App · HOD Response</div>
+        <h2>Remove Incident</h2>
+        <div class="notice info">The incident will disappear from normal histories and point totals, but its original Sheet row and this reason will remain for audit.</div>
+        <p><strong>Select the reason:</strong></p>
+        <div class="offence-shortcuts" id="removalReasonChoices">
+          <button class="offence-shortcut reason-choice" data-removal-reason="Duplicate entry" onclick="selectRemovalReason(this)">Duplicate Entry</button>
+          <button class="offence-shortcut reason-choice" data-removal-reason="Wrong learner selected" onclick="selectRemovalReason(this)">Wrong Learner</button>
+          <button class="offence-shortcut reason-choice" data-removal-reason="Wrong offence or incident details" onclick="selectRemovalReason(this)">Wrong Offence / Details</button>
+          <button class="offence-shortcut reason-choice" data-removal-reason="Test entry or entered by mistake" onclick="selectRemovalReason(this)">Test / Entered by Mistake</button>
+        </div>
+        <button class="btn secondary block reason-choice" data-removal-reason="Other" onclick="selectRemovalReason(this)">Other Reason</button>
+        <div id="removalReasonPreview" class="offence-preview" style="margin-top:14px">Select a reason above.</div>
+        <label for="removalReasonDetails">Additional details</label>
+        <textarea id="removalReasonDetails" placeholder="Optional for quick reasons. Required when Other Reason is selected."></textarea>
+        <div id="removalDialogNotice"></div>
+        <div class="dialog-actions">
+          <button class="btn secondary" onclick="cancelIncidentRemoval()">Cancel</button>
+          <button id="confirmRemovalBtn" class="btn danger" onclick="confirmIncidentRemoval()" disabled>Remove Incident</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+  }
+
+  function selectRemovalReason(button) {
+    selectedRemovalReason = String(button.dataset.removalReason || '').trim();
+    document.querySelectorAll('#scpsAppDialog .reason-choice').forEach(function(item) {
+      item.classList.toggle('selected', item === button);
+    });
+    const preview = document.getElementById('removalReasonPreview');
+    const confirmButton = document.getElementById('confirmRemovalBtn');
+    if (preview) preview.innerHTML = `<strong>Selected:</strong> ${escapeHtml(selectedRemovalReason)}`;
+    if (confirmButton) confirmButton.disabled = false;
+    if (selectedRemovalReason === 'Other') {
+      document.getElementById('removalReasonDetails').focus();
+    }
+  }
+
+  function cancelIncidentRemoval() {
+    const modal = document.getElementById('scpsAppDialog');
+    if (modal) modal.remove();
+    pendingIncidentRemoval = null;
+    selectedRemovalReason = '';
+  }
+
+  function confirmIncidentRemoval() {
+    if (!pendingIncidentRemoval) return;
+    const details = String(document.getElementById('removalReasonDetails').value || '').trim();
+    const dialogNotice = document.getElementById('removalDialogNotice');
+    if (!selectedRemovalReason) {
+      dialogNotice.innerHTML = '<div class="notice error">Select a removal reason.</div>';
       return;
     }
-    if (!window.confirm('Remove this incident from histories and point totals? The original Sheet row will be retained for audit.')) return;
-    if (notice) notice.innerHTML = '<div class="notice info"><span class="spinner"></span>Removing incident…</div>';
+    if (selectedRemovalReason === 'Other' && details.length < 5) {
+      dialogNotice.innerHTML = '<div class="notice error">Enter a clear reason of at least 5 characters.</div>';
+      return;
+    }
+
+    const cleanReason = selectedRemovalReason === 'Other'
+      ? details
+      : selectedRemovalReason + (details ? ': ' + details : '');
+    const incidentID = pendingIncidentRemoval.incidentID;
+    const pageNotice = pendingIncidentRemoval.notice;
+    const button = document.getElementById('confirmRemovalBtn');
+    button.disabled = true;
+    button.textContent = 'Removing…';
+    dialogNotice.innerHTML = '<div class="notice info"><span class="spinner"></span>Removing incident…</div>';
 
     apiCall('removeIncident', {
       sessionToken: sessionToken,
       incidentID: incidentID,
       removalReason: cleanReason
     }).then(function(result) {
-      window.alert(result.message || 'Incident removed.');
+      cancelIncidentRemoval();
       const historyLearnerID = currentHistory && currentHistory.learner
         ? currentHistory.learner.learnerID
         : '';
-      if (historyLearnerID) {
-        openHistory(historyLearnerID);
-      } else {
-        openHodDashboard();
-      }
+      appMessage('Incident Removed', result.message || 'The incident was removed and retained in the audit record.', 'Continue')
+        .then(function() {
+          if (historyLearnerID) {
+            openHistory(historyLearnerID);
+          } else {
+            openHodDashboard();
+          }
+        });
     }).catch(function(error) {
-      if (notice) notice.innerHTML = `<div class="notice error">${escapeHtml(errorMessage(error))}</div>`;
+      button.disabled = false;
+      button.textContent = 'Remove Incident';
+      dialogNotice.innerHTML = `<div class="notice error">${escapeHtml(errorMessage(error))}</div>`;
+      if (pageNotice) pageNotice.innerHTML = `<div class="notice error">${escapeHtml(errorMessage(error))}</div>`;
       maybeHandleExpired(error);
     });
   }
@@ -2109,22 +2383,25 @@
       return;
     }
 
-    if (!confirm('Reset the PIN for ' + selectedAdminUser.name + '?')) {
-      return;
-    }
-
-    apiCall('resetAdminUserPin', {
-      sessionToken: sessionToken,
-      teacherID: selectedAdminUser.teacherID,
-      newPin: newPin
-    })
-    .then(function(result) {
-      document.getElementById('adminNewPin').value = '';
-      showAdminNotice(result.message || 'PIN reset successfully.', 'success');
-    })
-    .catch(function(error) {
-      showAdminNotice(errorMessage(error), 'error');
-      maybeHandleExpired(error);
+    appConfirm({
+      title: 'Reset User PIN',
+      message: 'Reset the PIN for ' + selectedAdminUser.name + '?',
+      confirmLabel: 'Reset PIN'
+    }).then(function(confirmed) {
+      if (!confirmed) return;
+      apiCall('resetAdminUserPin', {
+        sessionToken: sessionToken,
+        teacherID: selectedAdminUser.teacherID,
+        newPin: newPin
+      })
+      .then(function(result) {
+        document.getElementById('adminNewPin').value = '';
+        showAdminNotice(result.message || 'PIN reset successfully.', 'success');
+      })
+      .catch(function(error) {
+        showAdminNotice(errorMessage(error), 'error');
+        maybeHandleExpired(error);
+      });
     });
   }
 
@@ -2133,29 +2410,29 @@
 
     const action = makeActive ? 'activate' : 'deactivate';
 
-    if (!confirm(
-      (makeActive ? 'Activate ' : 'Deactivate ') +
-      selectedAdminUser.name +
-      '?'
-    )) {
-      return;
-    }
+    appConfirm({
+      title: makeActive ? 'Activate User' : 'Deactivate User',
+      message: (makeActive ? 'Activate ' : 'Deactivate ') + selectedAdminUser.name + '?',
+      confirmLabel: makeActive ? 'Activate' : 'Deactivate',
+      danger: !makeActive
+    }).then(function(confirmed) {
+      if (!confirmed) return;
+      apiCall('setAdminUserActive', {
+        sessionToken: sessionToken,
+        teacherID: selectedAdminUser.teacherID,
+        active: makeActive
+      })
+      .then(function(result) {
+        showAdminNotice(result.message || ('User ' + action + 'd.'), 'success');
 
-    apiCall('setAdminUserActive', {
-      sessionToken: sessionToken,
-      teacherID: selectedAdminUser.teacherID,
-      active: makeActive
-    })
-    .then(function(result) {
-      showAdminNotice(result.message || ('User ' + action + 'd.'), 'success');
-
-      setTimeout(function() {
-        openManageUsers();
-      }, 500);
-    })
-    .catch(function(error) {
-      showAdminNotice(errorMessage(error), 'error');
-      maybeHandleExpired(error);
+        setTimeout(function() {
+          openManageUsers();
+        }, 500);
+      })
+      .catch(function(error) {
+        showAdminNotice(errorMessage(error), 'error');
+        maybeHandleExpired(error);
+      });
     });
   }
 
