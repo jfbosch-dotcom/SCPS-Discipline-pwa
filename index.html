@@ -559,7 +559,7 @@
         <strong>Add to Home Screen</strong>.
       </div>
 
-      <div class="version-footer">SCPS Discipline App · v0.94-1c alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></div>
+      <div class="version-footer">SCPS Discipline App · v0.95a alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></div>
     </div>
   </section>
 
@@ -567,7 +567,7 @@
     <img src="icon-192.png" alt="SCPS logo">
 
     <div class="header-title">
-      <h1>SCPS Discipline App <span class="header-version">v0.94-1c alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></span></h1>
+      <h1>SCPS Discipline App <span class="header-version">v0.95a alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></span></h1>
       <p>Sterkspruit Christian Private School</p>
     </div>
 
@@ -609,14 +609,14 @@
         Only use “Keep me signed in” on a private device that you control.
       </p>
 
-      <div class="version-footer">SCPS Discipline App · v0.94-1c alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></div>
+      <div class="version-footer">SCPS Discipline App · v0.95a alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></div>
     </section>
 
     <section id="appView" class="hidden"></section>
   </main>
 
 <script>
-  const APP_VERSION = 'v0.94-1c alpha';
+  const APP_VERSION = 'v0.95a alpha';
 
   let sessionToken = '';
   let rememberedToken = '';
@@ -665,12 +665,22 @@
 
   const REMEMBER_STORAGE_KEY = 'scpsDisciplineRememberToken';
 
-  const API_BASE_URL = 'https://scps-discipline-api.jfbosch3.workers.dev';
-  const API_URL = API_BASE_URL + '/api';
+  const PRIMARY_API_BASE_URL = 'https://api-scps.jbproducts.co.za';
+  const FALLBACK_API_BASE_URL = 'https://scps-discipline-api.jfbosch3.workers.dev';
+  let activeApiBaseUrl = PRIMARY_API_BASE_URL;
   const API_TIMEOUT_MS = 30000;
   const REMOVE_INCIDENT_ACTION = 'Remove Incident — Entered in Error';
 
   const VERSION_HISTORY = [
+    {
+      key:'v095a', version:'v0.95a alpha', summary:'Custom JB Products domain and mobile-data connection path',
+      changes:[
+        'Prepared scps.jbproducts.co.za as the permanent SCPS app address.',
+        'Prepared api-scps.jbproducts.co.za as the permanent Cloudflare Worker API address.',
+        'Kept the existing workers.dev endpoint as a temporary connection fallback during the domain transition.',
+        'Preserved the existing authentication, permissions, Apps Script bridge and Google Sheet data structure.'
+      ]
+    },
     {
       key:'v0941c', version:'v0.94-1c alpha', summary:'High-risk monitoring, reports, trends and reliable Back navigation',
       changes:[
@@ -770,6 +780,17 @@
   let deferredInstallPrompt = null;
 
   async function apiCall(action, data) {
+    try {
+      return await apiCallAtBase(activeApiBaseUrl, action, data);
+    } catch (error) {
+      // A fetch failure can occur AFTER the backend processed a write.
+      // Never replay requests on another hostname automatically. The old
+      // endpoint is retained only for an explicit administrator rollback.
+      throw normaliseConnectionError(error);
+    }
+  }
+
+  async function apiCallAtBase(baseUrl, action, data) {
     const controller = new AbortController();
     const timer = setTimeout(function() {
       controller.abort();
@@ -778,7 +799,7 @@
     try {
       // text/plain is deliberate: it keeps this as a CORS "simple request"
       // and avoids an OPTIONS preflight on mobile Safari/iOS web apps.
-      const response = await fetch(API_URL, {
+      const response = await fetch(baseUrl + '/api', {
         method: 'POST',
         headers: {
           'Content-Type': 'text/plain;charset=UTF-8'
@@ -820,16 +841,21 @@
         throw timeoutError;
       }
 
-      if (error instanceof TypeError) {
-        throw new Error(
-          'This device could not reach the SCPS server. Please check your connection and try again.'
-        );
-      }
-
       throw error;
     } finally {
       clearTimeout(timer);
     }
+  }
+
+  function normaliseConnectionError(error) {
+    if (error instanceof TypeError) {
+      const connectionError = new Error(
+        'This device could not reach the SCPS server. Please check your connection and try again.'
+      );
+      connectionError.code = 'NETWORK_ERROR';
+      return connectionError;
+    }
+    return error;
   }
 
   function makeRequestID(prefix) {

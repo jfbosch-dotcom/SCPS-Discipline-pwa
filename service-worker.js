@@ -1,4 +1,4 @@
-const CACHE_NAME = 'scps-discipline-v094-1c-alpha';
+const CACHE_NAME = 'scps-discipline-v095a-alpha';
 
 const STATIC_FILES = [
   './',
@@ -36,7 +36,10 @@ self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
   // Never cache API traffic.
-  if (url.hostname === 'scps-discipline-api.jfbosch3.workers.dev') {
+  if (
+    url.hostname === 'api-scps.jbproducts.co.za' ||
+    url.hostname === 'scps-discipline-api.jfbosch3.workers.dev'
+  ) {
     return;
   }
 
