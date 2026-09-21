@@ -427,18 +427,18 @@
     .report-heading img{width:64px;height:64px;object-fit:contain}
     .report-heading h2{margin:0}
     .report-meta{font-size:13px;color:var(--muted);line-height:1.5}
-    .chart-card{border:1px solid var(--line);border-radius:12px;padding:14px;margin:14px 0}
-    .bar-chart{display:grid;gap:12px}
-    .bar-row{border:0;background:transparent;padding:0;text-align:left;cursor:pointer}
-    .bar-label{display:flex;justify-content:space-between;gap:12px;margin-bottom:5px;font-size:13px}
-    .bar-track{height:26px;background:#e7edf2;border-radius:7px;overflow:hidden}
-    .bar-fill{height:100%;min-width:3px;background:var(--blue);border-radius:7px}
-    .bar-change{font-size:12px;color:var(--muted);margin-top:4px}
-    .week-chart{display:flex;align-items:flex-end;gap:8px;min-height:260px;overflow-x:auto;padding:12px 4px 4px}
-    .week-column{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;min-width:58px;height:240px}
-    .week-value{font-size:12px;font-weight:700;color:var(--navy);margin-bottom:4px}
-    .week-bar{width:38px;min-height:3px;border:0;background:var(--blue);border-radius:6px 6px 0 0;cursor:pointer}
-    .week-label{font-size:10px;color:var(--muted);text-align:center;margin-top:5px;white-space:nowrap}
+    .chart-card{border:1px solid var(--line);border-radius:12px;padding:14px;margin:14px 0;background:#fff;overflow:hidden}
+    .svg-chart{display:block;width:100%;height:auto;min-height:230px}
+    .svg-chart text{font-family:Arial,sans-serif;fill:#29435d}
+    .svg-chart .axis{stroke:#9baab7;stroke-width:1}
+    .svg-chart .gridline{stroke:#d9e2e8;stroke-width:1}
+    .svg-chart .line{fill:none;stroke:#337ab7;stroke-width:3}
+    .svg-chart .point{fill:#337ab7;stroke:white;stroke-width:2}
+    .chart-legend{display:flex;gap:15px;flex-wrap:wrap;margin:4px 0 12px;font-size:12px;color:var(--muted)}
+    .legend-key{display:inline-flex;align-items:center;gap:5px}
+    .legend-swatch{width:12px;height:12px;border-radius:2px;background:#337ab7;display:inline-block}
+    .legend-swatch.previous{background:#aab7c2}
+    .chart-summary{font-size:12px;color:var(--muted);margin:8px 0 0}
     .report-stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0}
     .report-stat{background:#eef4f8;border:1px solid var(--line);border-radius:10px;padding:12px}
     .report-stat strong{display:block;color:var(--navy);font-size:24px}
@@ -524,6 +524,17 @@
       line-height:1.45;
     }
 
+    .iphone-install{
+      margin-top:18px;
+      padding:17px;
+      border:2px solid #23456a;
+      border-radius:12px;
+      background:#f4f8fb;
+      text-align:left;
+    }
+    .iphone-install strong{display:block;color:var(--navy);font-size:20px;margin-bottom:8px}
+    .iphone-install p{margin:0;color:#40505c;font-size:15px}
+
     @media print{
       .app-header,.no-print,.btn-row,.filters,.filter-panel,.hod-response-controls{display:none!important}
       body{background:white}
@@ -531,8 +542,11 @@
       .card{box-shadow:none;padding:0}
       .incident,.dashboard-row{break-inside:avoid}
       .report-table{font-size:10pt}
-      .chart-card{break-inside:avoid}
-      .week-chart{overflow:visible}
+      .chart-card{break-inside:avoid;overflow:visible;border:1px solid #aeb9c2}
+      .svg-chart{display:block!important;width:100%!important;height:auto!important;min-height:0!important}
+      .svg-chart text{fill:#162b40!important}
+      .chart-summary{display:block!important}
+      @page{size:auto;margin:11mm}
     }
   </style>
 </head>
@@ -546,7 +560,7 @@
       <p>Install the app on your phone for quick access, or continue in your browser.</p>
 
       <button id="installAppBtn" class="btn block" type="button">
-        Install SCPS Discipline App
+        Install on Android
       </button>
 
       <button id="continueBrowserBtn" class="btn secondary block" type="button" style="margin-top:10px">
@@ -554,12 +568,15 @@
       </button>
 
       <div id="installHelp" class="install-note">
-        <strong>Android:</strong> Tap the install button above, then confirm Install.<br><br>
-        <strong>iPhone:</strong> Open this page in Safari, tap <strong>Share</strong>, then choose
-        <strong>Add to Home Screen</strong>.
+        <strong>Android:</strong> Tap <strong>Install on Android</strong> above, then confirm Install when your phone asks.
       </div>
 
-      <div class="version-footer">SCPS Discipline App · v0.95a alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></div>
+      <div class="iphone-install">
+        <strong>Using an iPhone?</strong>
+        <p>Open this page in <strong>Safari</strong>, tap <strong>Share</strong> (the square with an upward arrow), choose <strong>Add to Home Screen</strong>, then tap <strong>Add</strong>.</p>
+      </div>
+
+      <div class="version-footer">SCPS Discipline App · v0.95b Alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></div>
     </div>
   </section>
 
@@ -567,7 +584,7 @@
     <img src="icon-192.png" alt="SCPS logo">
 
     <div class="header-title">
-      <h1>SCPS Discipline App <span class="header-version">v0.95a alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></span></h1>
+      <h1>SCPS Discipline App <span class="header-version">v0.95b Alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></span></h1>
       <p>Sterkspruit Christian Private School</p>
     </div>
 
@@ -609,14 +626,14 @@
         Only use “Keep me signed in” on a private device that you control.
       </p>
 
-      <div class="version-footer">SCPS Discipline App · v0.95a alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></div>
+      <div class="version-footer">SCPS Discipline App · v0.95b Alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></div>
     </section>
 
     <section id="appView" class="hidden"></section>
   </main>
 
 <script>
-  const APP_VERSION = 'v0.95a alpha';
+  const APP_VERSION = 'v0.95b Alpha';
 
   let sessionToken = '';
   let rememberedToken = '';
@@ -646,10 +663,14 @@
   let classHistoryReturnToReports = false;
   let trendFilter = {period:'7', grade:'', className:'', offenceCode:''};
   let reportFilter = {period:'7', grade:'', className:'', offenceCode:''};
+  let hodRecentPeriod = '7';
+  let hodAllPeriod = 'year';
+  let pointsPerClassPeriod = 'term';
   let loginRequestID = '';
   let incidentRequestID = '';
   let observationRequestID = '';
   let detentionRequestID = '';
+  let parentContactRequestID = '';
 
   let adminUsers = [];
   let adminClasses = [];
@@ -672,6 +693,16 @@
   const REMOVE_INCIDENT_ACTION = 'Remove Incident — Entered in Error';
 
   const VERSION_HISTORY = [
+    {
+      key:'v095b', version:'v0.95b Alpha', summary:'Reporting refinement, parent-contact follow-up and detention milestones',
+      changes:[
+        'Added occurrence-date filters to Recent Incidents and All Incidents.',
+        'Rebuilt the discipline charts as print-safe SVG graphs and added the Points per Class PDF report.',
+        'Added register-teacher Parent Contacted follow-up with method, optional note and learner-report audit record.',
+        'Changed detention to milestones at 40 points, then every 20 points, with completed sessions stored separately from incident points.',
+        'Improved the installation landing page with separate Android and iPhone guidance.'
+      ]
+    },
     {
       key:'v095a', version:'v0.95a alpha', summary:'Custom JB Products domain and mobile-data connection path',
       changes:[
@@ -884,13 +915,19 @@
 
     const installButton = document.getElementById('installAppBtn');
     const help = document.getElementById('installHelp');
-
+    installButton.textContent = 'Install on Android';
     if (isIOSDevice()) {
-      installButton.textContent = 'How to Install on iPhone';
+      installButton.disabled = true;
+      help.innerHTML = '<strong>Android install:</strong> This button is available on Android. Please use the iPhone instructions below.';
+    } else {
+      installButton.disabled = false;
       installButton.onclick = function() {
-        help.innerHTML =
-          '<strong>iPhone:</strong> In Safari, tap <strong>Share</strong>, then choose <strong>Add to Home Screen</strong>.';
-        help.scrollIntoView({behavior:'smooth', block:'center'});
+        if (!deferredInstallPrompt) {
+          help.innerHTML = '<strong>Android install:</strong> Your browser has not offered installation yet. Open the Chrome menu (⋮) and choose <strong>Install app</strong> or <strong>Add to Home screen</strong>.';
+          return;
+        }
+        deferredInstallPrompt.prompt();
+        deferredInstallPrompt.userChoice.finally(function() { deferredInstallPrompt = null; });
       };
     }
 
@@ -909,7 +946,7 @@
     const button = document.getElementById('installAppBtn');
     if (button && !isIOSDevice()) {
       button.disabled = false;
-      button.textContent = 'Install SCPS Discipline App';
+      button.textContent = 'Install on Android';
       button.onclick = async function() {
         if (!deferredInstallPrompt) return;
         deferredInstallPrompt.prompt();
@@ -1465,6 +1502,7 @@
     const className = String(data.registerClass || '').trim();
     if (!className) return;
     const entries = data.registerRecentEntries || [];
+    const parentContacts = data.parentContactActions || [];
 
     render(`
       <div class="card">
@@ -1472,12 +1510,86 @@
         <h2>My Register Class ${escapeHtml(className)}</h2>
         <button class="btn block" onclick="openRegisterClassSummary()">Class Summary</button>
         <hr class="section-line">
+        <h3>Parent Contact Follow-up</h3>
+        <p class="muted">These are HOD requests for your register class. Recording a follow-up does not change the HOD response or learner points.</p>
+        ${parentContacts.map(function(entry) {
+          return `<div class="incident">
+            <div class="incident-top"><div class="incident-date">${escapeHtml(entry.dateOccurred || '')} · ${escapeHtml(entry.timeOccurred || '')}</div><span class="points-badge">${Number(entry.demeritPoints || 0)} pts</span></div>
+            <p><strong>${escapeHtml(entry.learnerName || '')}</strong> · ${escapeHtml(entry.className || '')}</p>
+            <p><strong>${escapeHtml(entry.offenceCode || '')}: ${escapeHtml(entry.offenceDescription || entry.category || '')}</strong></p>
+            <p class="muted">HOD response: Parent Contact Required</p>
+            <button class="btn success" onclick="openParentContactForm('${jsString(entry.incidentID)}')">Parent Contacted</button>
+          </div>`;
+        }).join('') || '<div class="notice success">No parent-contact follow-up is currently waiting for this register class.</div>'}
+        <hr class="section-line">
         <h3>Latest Entries</h3>
         <p class="muted">Incidents for ${escapeHtml(className)} from the last 7 days.</p>
         ${entries.map(function(entry) { return entryCard(entry, false); }).join('') || '<p class="muted">No entries for this class in the last 7 days.</p>'}
         <div class="btn-row no-print"><button class="btn secondary" onclick="appBack()">Back</button></div>
       </div>
     `);
+  }
+
+  function openParentContactForm(incidentID) {
+    setScreenContext('teacher-parent-contact', openMyRegisterClass);
+    const entries = (currentTeacherDashboard && currentTeacherDashboard.parentContactActions) || [];
+    const incident = entries.filter(function(item) { return item.incidentID === incidentID; })[0];
+    if (!incident) {
+      render('<div class="card"><div class="notice error">That parent-contact request is no longer available. Refresh the Teacher Dashboard and try again.</div><div class="btn-row"><button class="btn secondary" onclick="appBack()">Back</button></div></div>');
+      return;
+    }
+    parentContactRequestID = '';
+    render(`
+      <div class="card">
+        <div class="crumbs">Teacher Dashboard · My Register Class · Parent Contact</div>
+        <h2>Parent Contacted</h2>
+        <div class="learner-banner"><strong>${escapeHtml(incident.learnerName || '')}</strong><br><span>${escapeHtml(incident.className || '')}</span><br><span class="muted">${escapeHtml(incident.offenceCode || '')}: ${escapeHtml(incident.offenceDescription || incident.category || '')}</span></div>
+        <p class="muted">Record the follow-up requested by the HOD. “No Answer” records an attempted contact; it does not claim that a parent was reached.</p>
+        <div id="parentContactNotice"></div>
+        <label for="parentContactDate">Contact date</label>
+        <input id="parentContactDate" type="date" value="${localDateISO()}">
+        <label for="parentContactMethod">Contact method</label>
+        <select id="parentContactMethod">
+          <option value="">Select method…</option>
+          <option>Phone Call</option><option>Text Message</option><option>Email</option><option>Meeting</option><option>Letter</option><option>No Answer</option>
+        </select>
+        <label for="parentContactNote">Optional note</label>
+        <textarea id="parentContactNote" maxlength="2000" placeholder="For example: Spoke with parent; discussed the incident and next steps."></textarea>
+        <div class="btn-row"><button id="saveParentContactBtn" class="btn success" onclick="submitParentContact('${jsString(incidentID)}')">Save Parent Contact</button><button class="btn secondary" onclick="appBack()">Back</button></div>
+      </div>
+    `);
+  }
+
+  function submitParentContact(incidentID) {
+    const contactDate = document.getElementById('parentContactDate').value;
+    const contactMethod = document.getElementById('parentContactMethod').value;
+    const note = document.getElementById('parentContactNote').value.trim();
+    const notice = document.getElementById('parentContactNotice');
+    const button = document.getElementById('saveParentContactBtn');
+    if (!contactDate || !contactMethod) {
+      notice.innerHTML = '<div class="notice error">Select the contact date and method.</div>';
+      return;
+    }
+    if (!parentContactRequestID) parentContactRequestID = makeRequestID('PC');
+    button.disabled = true;
+    button.textContent = 'Saving…';
+    apiCall('saveParentContact', {
+      sessionToken: sessionToken,
+      incidentID: incidentID,
+      contactDate: contactDate,
+      contactMethod: contactMethod,
+      note: note,
+      requestID: parentContactRequestID
+    }).then(function(result) {
+      parentContactRequestID = '';
+      currentTeacherDashboard = null;
+      render(`<div class="card"><div class="notice success"><strong>${escapeHtml(result.message || 'Parent contact recorded.')}</strong></div><div class="btn-row"><button class="btn" onclick="openTeacherDashboard()">Return to Teacher Dashboard</button><button class="btn secondary" onclick="goHome()">Home</button></div></div>`);
+    }).catch(function(error) {
+      button.disabled = false;
+      button.textContent = 'Save Parent Contact';
+      notice.innerHTML = `<div class="notice error">${escapeHtml(errorMessage(error))}</div>`;
+      maybeHandleExpired(error);
+    });
   }
 
   function openRegisterClassSummary() {
@@ -1653,8 +1765,8 @@
       <div class="card">
         <div class="crumbs">HOD Dashboard · Detention Due</div>
         <h2>Detention Due</h2>
-        <p class="muted">Learners with an active balance at or above ${Number(data.detentionThreshold || detentionThreshold)} points. Completing one detention serves 40 points; any excess carries forward.</p>
-        ${due.map(function(learner) { return dashboardLearnerRow(learner, true, true); }).join('') || '<div class="notice success">No learners are currently at or above the detention threshold.</div>'}
+        <p class="muted">A detention is due at 40 points, then each additional 20 points (60, 80, 100, and so on). Completing a session records that milestone; lifetime incident points are never removed.</p>
+        ${due.map(function(learner) { return dashboardLearnerRow(learner, true, true); }).join('') || '<div class="notice success">No learners currently have an outstanding detention milestone.</div>'}
         <div class="btn-row no-print"><button class="btn secondary" onclick="appBack()">Back</button></div>
       </div>
     `);
@@ -1665,17 +1777,16 @@
     currentHodView = 'high-risk';
     const data = currentHodDashboard || {};
     const highRisk = data.highRiskLearners || [];
-    const minimum = Number(data.highRiskMinimum || 30);
-    const threshold = Number(data.detentionThreshold || detentionThreshold);
+    const minimum = Number(data.highRiskMinimum || 31);
     render(`
       <div class="card">
         <div class="crumbs">HOD Dashboard · High Risk Learners</div>
         <h2>High Risk Learners</h2>
         <div class="notice info">
-          Learners appear here while their active balance is from <strong>${minimum} to ${threshold - 1} points</strong>.
-          At ${threshold} points they move to Detention Due.
+          Learners remain in this management view once their lifetime total reaches <strong>${minimum} points</strong>.
+          Detention status is shown separately, so this view does not remove learners after a completed detention.
         </div>
-        ${highRisk.map(highRiskLearnerRow).join('') || '<div class="notice success">No learners currently have an active balance in the high-risk range.</div>'}
+        ${highRisk.map(highRiskLearnerRow).join('') || '<div class="notice success">No learners currently meet the high-risk threshold.</div>'}
         <div class="btn-row no-print"><button class="btn secondary" onclick="appBack()">Back</button></div>
       </div>
     `);
@@ -1686,8 +1797,7 @@
     const own = all.filter(function(entry) { return entry.learnerID === learner.learnerID; });
     const recentCount = own.filter(function(entry) { return isDateWithinDays(entry.dateOccurredISO, 7); }).length;
     const latest = own[0] || null;
-    const threshold = Number((currentHodDashboard && currentHodDashboard.detentionThreshold) || detentionThreshold);
-    const active = Number(learner.activeDemeritBalance || 0);
+    const lifetime = Number(learner.lifetimeDemeritTotal || learner.runningDemeritTotal || 0);
     return `
       <div class="dashboard-row">
         <div class="dashboard-row-main">
@@ -1696,9 +1806,8 @@
           ${latest ? `<br><span class="muted">Latest: ${escapeHtml(latest.dateOccurred)} — ${escapeHtml(latest.offenceLabel)}</span>` : ''}
         </div>
         <div class="dashboard-row-side">
-          <span class="points-badge">Active: ${active} pts</span><br>
-          <span class="pill" style="display:inline-block;margin-top:7px">Lifetime: <strong>${Number(learner.lifetimeDemeritTotal || 0)}</strong></span><br>
-          <span class="pill" style="display:inline-block;margin-top:7px"><strong>${Math.max(0, threshold - active)}</strong> points until detention</span><br>
+          <span class="points-badge">Lifetime: ${lifetime} pts</span><br>
+          ${Number(learner.detentionsCurrentlyDue || 0) ? `<span class="pill" style="display:inline-block;margin-top:7px">Detention milestone${Number(learner.detentionsCurrentlyDue) === 1 ? '' : 's'} due: <strong>${Number(learner.detentionsCurrentlyDue)}</strong></span><br>` : `<span class="pill" style="display:inline-block;margin-top:7px">Next detention: <strong>${Number(learner.nextDetentionThreshold || 40)} points</strong></span><br>`}
           <button class="btn secondary" style="margin-top:8px" onclick="openHistory('${jsString(learner.learnerID)}')">Learner History</button>
         </div>
       </div>`;
@@ -1742,7 +1851,7 @@
       return `
         <button class="list-btn" onclick="openHistory('${jsString(learner.learnerID)}')">
           <strong>${escapeHtml(learner.surname)}, ${escapeHtml(learner.name)}</strong><br>
-          <span class="muted">${escapeHtml(learner.className)} · Active balance: ${Number(summary.activeDemeritBalance || 0)} · Lifetime: ${Number(summary.lifetimeDemeritTotal || summary.runningDemeritTotal || 0)}</span>
+          <span class="muted">${escapeHtml(learner.className)} · Lifetime: ${Number(summary.lifetimeDemeritTotal || summary.runningDemeritTotal || 0)} · Detention milestones due: ${Number(summary.detentionsCurrentlyDue || 0)}</span>
         </button>
       `;
     }).join('') || '<p class="muted">No matching learners found.</p>';
@@ -1751,16 +1860,22 @@
   function openHodRecentIncidents() {
     setScreenContext('hod-recent-incidents', renderHodDashboard);
     currentHodView = 'recent';
-    const incidents = (currentHodDashboard && currentHodDashboard.recentIncidents) || [];
+    const incidents = hodFilteredIncidents_(hodRecentPeriod);
     render(`
       <div class="card">
         <div class="crumbs">HOD Dashboard · Recent Incidents</div>
         <h2>Recent Incidents</h2>
-        <p class="muted">School-wide incidents from the last 7 days: <strong>${incidents.length}</strong></p>
-        ${incidents.map(function(entry) { return incidentCard(entry, true); }).join('') || '<p class="muted">No incidents in the last 7 days.</p>'}
+        <div class="filter-panel no-print"><div><label for="hodRecentPeriod">Incident occurrence date</label><select id="hodRecentPeriod" onchange="applyHodRecentPeriod(this.value)">${periodOptions_(hodRecentPeriod)}</select></div></div>
+        <p class="muted">School-wide incidents for <strong>${escapeHtml(reportingBounds_(hodRecentPeriod).label)}</strong>: <strong>${incidents.length}</strong></p>
+        ${incidents.map(function(entry) { return incidentCard(entry, true); }).join('') || '<p class="muted">No incidents match this period.</p>'}
         <div class="btn-row no-print"><button class="btn secondary" onclick="appBack()">Back</button></div>
       </div>
     `);
+  }
+
+  function applyHodRecentPeriod(value) {
+    hodRecentPeriod = String(value || '7');
+    openHodRecentIncidents();
   }
 
   function openClassHistorySetup() {
@@ -1793,10 +1908,19 @@
           <div><label for="classHistoryFrom">From Date</label><input id="classHistoryFrom" type="date" value="${defaultFrom}"></div>
           <div><label for="classHistoryTo">To Date</label><input id="classHistoryTo" type="date" value="${today}"></div>
         </div>
+        <div class="btn-row no-print" style="margin-top:10px"><button class="btn secondary" type="button" onclick="setClassReportDates('7')">Last 7 Days</button><button class="btn secondary" type="button" onclick="setClassReportDates('30')">Last 30 Days</button><button class="btn secondary" type="button" onclick="setClassReportDates('term')">This Term</button></div>
         <button id="classHistoryContinue" class="btn block" style="margin-top:16px" onclick="loadClassHistory()">Continue</button>
         <div class="btn-row no-print"><button class="btn secondary" onclick="appBack()">Back</button></div>
       </div>
     `);
+  }
+
+  function setClassReportDates(period) {
+    const bounds = reportingBounds_(period);
+    const from = document.getElementById('classHistoryFrom');
+    const to = document.getElementById('classHistoryTo');
+    if (from) from.value = bounds.start;
+    if (to) to.value = bounds.end;
   }
 
   function loadClassHistory() {
@@ -1869,9 +1993,9 @@
     const learnersList = (currentClassHistory && currentClassHistory.learners) || [];
     return `
       <table class="report-table">
-        <thead><tr><th>Learner</th><th>Inc.</th><th>Obs.</th><th>Period pts</th><th>Lifetime</th><th>Served</th><th>Active</th><th>Status</th></tr></thead>
+        <thead><tr><th>Learner</th><th>Inc.</th><th>Obs.</th><th>Period pts</th><th>Lifetime</th><th>Det. completed</th><th>Det. due</th><th>Status</th></tr></thead>
         <tbody>${learnersList.map(function(learner) {
-          return `<tr><td>${escapeHtml(learner.surname)}, ${escapeHtml(learner.name)}</td><td>${Number(learner.incidentCount || 0)}</td><td>${Number(learner.observationCount || 0)}</td><td>${Number(learner.periodPoints || 0)}</td><td>${Number(learner.accumulatedTotal || 0)}</td><td>${Number(learner.detentionPointsServed || 0)}</td><td>${Number(learner.activeDemeritBalance || 0)}</td><td>${escapeHtml(learner.disciplineStatus || '')}</td></tr>`;
+          return `<tr><td>${escapeHtml(learner.surname)}, ${escapeHtml(learner.name)}</td><td>${Number(learner.incidentCount || 0)}</td><td>${Number(learner.observationCount || 0)}</td><td>${Number(learner.periodPoints || 0)}</td><td>${Number(learner.accumulatedTotal || 0)}</td><td>${Number(learner.detentionsCompleted || 0)}</td><td>${Number(learner.detentionsCurrentlyDue || 0)}</td><td>${escapeHtml(learner.disciplineStatus || '')}</td></tr>`;
         }).join('') || '<tr><td colspan="8">No learners found.</td></tr>'}</tbody>
       </table>`;
   }
@@ -1894,40 +2018,31 @@
       <div class="card">
         <div class="crumbs">HOD Dashboard · All Incidents</div>
         <h2>All Incidents</h2>
-        <div class="date-filter no-print">
-          <div>
-            <label for="hodIncidentDate">Filter by incident date</label>
-            <input id="hodIncidentDate" type="date">
-          </div>
-          <button class="btn" style="align-self:end" onclick="applyHodIncidentDateFilter()">Filter Date</button>
-          <button class="btn secondary" style="align-self:end" onclick="clearHodIncidentDateFilter()">Show All</button>
-        </div>
+        <div class="filter-panel no-print"><div><label for="hodAllPeriod">Incident occurrence date</label><select id="hodAllPeriod" onchange="applyHodAllPeriod(this.value)">${periodOptions_(hodAllPeriod)}</select></div></div>
         <div id="hodAllSummary" class="summary-box"></div>
         <div id="hodAllList"></div>
         <div class="btn-row no-print"><button class="btn secondary" onclick="appBack()">Back</button></div>
       </div>
     `);
-    applyHodIncidentDateFilter();
+    applyHodAllPeriod(hodAllPeriod);
   }
 
-  function applyHodIncidentDateFilter() {
-    const date = document.getElementById('hodIncidentDate')?.value || '';
-    const all = (currentHodDashboard && currentHodDashboard.allIncidents) || [];
-    const filtered = date ? all.filter(function(entry) {
-      return entry.dateOccurredISO === date;
-    }) : all;
+  function hodFilteredIncidents_(period) {
+    const bounds = reportingBounds_(period);
+    return ((currentHodDashboard && currentHodDashboard.allIncidents) || []).filter(function(entry) {
+      return entry.dateOccurredISO >= bounds.start && entry.dateOccurredISO <= bounds.end;
+    });
+  }
+
+  function applyHodAllPeriod(value) {
+    hodAllPeriod = String(value || hodAllPeriod || 'year');
+    const filtered = hodFilteredIncidents_(hodAllPeriod);
     const summary = document.getElementById('hodAllSummary');
     const list = document.getElementById('hodAllList');
-    if (summary) summary.innerHTML = `<span class="pill"><strong>${filtered.length}</strong> incident${filtered.length === 1 ? '' : 's'}${date ? ' on ' + escapeHtml(date) : ''}</span>`;
+    if (summary) summary.innerHTML = `<span class="pill"><strong>${filtered.length}</strong> incident${filtered.length === 1 ? '' : 's'} · ${escapeHtml(reportingBounds_(hodAllPeriod).label)}</span>`;
     if (list) list.innerHTML = filtered.map(function(entry) {
       return incidentCard(entry, true);
-    }).join('') || '<p class="muted">No incidents match this date.</p>';
-  }
-
-  function clearHodIncidentDateFilter() {
-    const input = document.getElementById('hodIncidentDate');
-    if (input) input.value = '';
-    applyHodIncidentDateFilter();
+    }).join('') || '<p class="muted">No incidents match this period.</p>';
   }
 
   /* =========================================================
@@ -1971,23 +2086,15 @@
         previous:Number((previousCounts[code] && previousCounts[code].count) || 0)
       };
     }).sort(function(a,b) { return b.count - a.count || a.label.localeCompare(b.label); }).slice(0,10);
-    const max = rows.reduce(function(value,row) { return Math.max(value,row.count); }, 1);
     render(`
       <div class="card">
         ${reportHeading_('Trending Offences', trendFilter)}
         <div class="no-print">${trendFilterPanel_('offences')}</div>
         <p class="filter-summary">${escapeHtml(filterSummary_(trendFilter))} · ${filtered.current.length} incident${filtered.current.length === 1 ? '' : 's'}</p>
         <div class="chart-card">
-          <div class="bar-chart">
-            ${rows.map(function(row) {
-              const change = trendChangeText_(row.count, row.previous);
-              return `<button class="bar-row" onclick="openTrendIncidentList('offence','${jsString(row.code)}')">
-                <span class="bar-label"><strong>${escapeHtml(row.code + ': ' + row.label)}</strong><span>${row.count}</span></span>
-                <span class="bar-track"><span class="bar-fill" style="display:block;width:${Math.max(2, Math.round(row.count / max * 100))}%"></span></span>
-                <span class="bar-change">${escapeHtml(change)}</span>
-              </button>`;
-            }).join('') || '<p class="muted">No incidents match these filters.</p>'}
-          </div>
+          <div class="chart-legend"><span class="legend-key"><span class="legend-swatch"></span>Selected period</span><span class="legend-key"><span class="legend-swatch previous"></span>Previous equivalent period</span></div>
+          ${offenceTrendSvg_(rows)}
+          <p class="chart-summary">Chart labels use the offence code to stay readable. Full descriptions and counts are listed in Graph Data below.</p>
         </div>
         ${trendDataTable_(rows)}
         <div class="btn-row no-print"><button class="btn" onclick="window.print()">Save to PDF</button><button class="btn secondary" onclick="appBack()">Back</button></div>
@@ -2000,7 +2107,6 @@
     const filtered = filteredIncidents_(trendFilter);
     currentTrendIncidents = filtered.current;
     const weeks = weekCounts_(filtered.current, filtered.bounds.start, filtered.bounds.end);
-    const max = weeks.reduce(function(value,week) { return Math.max(value,week.count); }, 1);
     const average = weeks.length ? (filtered.current.length / weeks.length).toFixed(1) : '0.0';
     const peak = weeks.reduce(function(best,week) { return !best || week.count > best.count ? week : best; }, null);
     const last = weeks[weeks.length - 1] || {count:0};
@@ -2017,20 +2123,78 @@
           <div class="report-stat"><strong>${last.count - prior.count >= 0 ? '+' : ''}${last.count - prior.count}</strong><span>Change from previous week</span></div>
         </div>
         <div class="chart-card">
-          <div class="week-chart">
-            ${weeks.map(function(week) {
-              const height = Math.max(3, Math.round(week.count / max * 185));
-              return `<div class="week-column">
-                <span class="week-value">${week.count}</span>
-                <button class="week-bar" style="height:${height}px" onclick="openTrendIncidentList('week','${week.start}')" aria-label="Open incidents for week starting ${week.label}"></button>
-                <span class="week-label">${escapeHtml(week.label)}</span>
-              </div>`;
-            }).join('') || '<p class="muted">No weeks are available for these filters.</p>'}
-          </div>
+          ${weeklyLineSvg_(weeks)}
+          <p class="chart-summary">The line ends at the current week. Every plotted point is included in Graph Data below.</p>
         </div>
         ${weekDataTable_(weeks)}
         <div class="btn-row no-print"><button class="btn" onclick="window.print()">Save to PDF</button><button class="btn secondary" onclick="appBack()">Back</button></div>
       </div>`);
+  }
+
+  // Inline SVG is intentionally used instead of CSS/flex or canvas charts.
+  // Android's Print / Save as PDF renderer keeps this exact SVG content.
+  function offenceTrendSvg_(rows) {
+    if (!rows.length) return '<p class="muted">No incidents match these filters.</p>';
+    const height = Math.max(220, rows.length * 46 + 55);
+    const labelX = 14;
+    const plotX = 93;
+    const plotWidth = 595;
+    const max = rows.reduce(function(value, row) {
+      return Math.max(value, Number(row.count || 0), Number(row.previous || 0));
+    }, 1);
+    const axis = [0, Math.ceil(max / 2), max].filter(function(value, index, array) {
+      return index === 0 || value !== array[index - 1];
+    });
+    const grid = axis.map(function(value) {
+      const x = plotX + value / max * plotWidth;
+      return `<line class="gridline" x1="${x}" y1="26" x2="${x}" y2="${height - 14}"></line><text x="${x}" y="18" text-anchor="middle" font-size="11">${value}</text>`;
+    }).join('');
+    const bars = rows.map(function(row, index) {
+      const y = 30 + index * 46;
+      const currentWidth = Math.max(0, Number(row.count || 0) / max * plotWidth);
+      const previousWidth = Math.max(0, Number(row.previous || 0) / max * plotWidth);
+      return `<text x="${labelX}" y="${y + 16}" font-size="13" font-weight="700">${escapeHtml(row.code)}</text>
+        <rect x="${plotX}" y="${y}" width="${previousWidth}" height="12" rx="2" fill="#aab7c2"></rect>
+        <rect x="${plotX}" y="${y + 17}" width="${currentWidth}" height="12" rx="2" fill="#337ab7"></rect>
+        <text x="${Math.min(plotX + currentWidth + 8, 738)}" y="${y + 28}" font-size="11" font-weight="700">${Number(row.count || 0)}</text>`;
+    }).join('');
+    return `<svg class="svg-chart" viewBox="0 0 760 ${height}" role="img" aria-label="Trending offences bar chart">${grid}${bars}<line class="axis" x1="${plotX}" y1="${height - 14}" x2="${plotX + plotWidth}" y2="${height - 14}"></line></svg>`;
+  }
+
+  function weeklyLineSvg_(weeks) {
+    if (!weeks.length) return '<p class="muted">No weeks are available for these filters.</p>';
+    const width = 760;
+    const height = 280;
+    const left = 52;
+    const right = 20;
+    const top = 26;
+    const bottom = 50;
+    const plotW = width - left - right;
+    const plotH = height - top - bottom;
+    const max = Math.max(1, weeks.reduce(function(value, week) { return Math.max(value, Number(week.count || 0)); }, 0));
+    const yMax = Math.max(2, Math.ceil(max / 2) * 2);
+    const points = weeks.map(function(week, index) {
+      const x = left + (weeks.length === 1 ? plotW / 2 : index / (weeks.length - 1) * plotW);
+      const y = top + (1 - Number(week.count || 0) / yMax) * plotH;
+      return {x:x, y:y, week:week};
+    });
+    const yTicks = [0, Math.ceil(yMax / 2), yMax].filter(function(value, index, array) {
+      return index === 0 || value !== array[index - 1];
+    });
+    const grid = yTicks.map(function(value) {
+      const y = top + (1 - value / yMax) * plotH;
+      return `<line class="gridline" x1="${left}" y1="${y}" x2="${width - right}" y2="${y}"></line><text x="${left - 8}" y="${y + 4}" text-anchor="end" font-size="11">${value}</text>`;
+    }).join('');
+    const labels = points.map(function(point, index) {
+      const show = points.length <= 7 || index === 0 || index === points.length - 1 || index % Math.ceil(points.length / 6) === 0;
+      return show ? `<text x="${point.x}" y="${height - 18}" text-anchor="middle" font-size="10">${escapeHtml(point.week.label)}</text>` : '';
+    }).join('');
+    const values = points.map(function(point) {
+      return `<text x="${point.x}" y="${Math.max(15, point.y - 10)}" text-anchor="middle" font-size="11" font-weight="700">${Number(point.week.count || 0)}</text>`;
+    }).join('');
+    const polyline = points.map(function(point) { return point.x + ',' + point.y; }).join(' ');
+    const circles = points.map(function(point) { return `<circle class="point" cx="${point.x}" cy="${point.y}" r="4"></circle>`; }).join('');
+    return `<svg class="svg-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Incidents per week line graph">${grid}<line class="axis" x1="${left}" y1="${top}" x2="${left}" y2="${height - bottom}"></line><line class="axis" x1="${left}" y1="${height - bottom}" x2="${width - right}" y2="${height - bottom}"></line><polyline class="line" points="${polyline}"></polyline>${circles}${values}${labels}</svg>`;
   }
 
   function openTrendIncidentList(type, value) {
@@ -2072,6 +2236,7 @@
     render(`<div class="card"><div class="crumbs">HOD Dashboard · Reports</div><h2>Reports</h2><p class="muted">Create management reports that can be printed or saved as PDF.</p><div class="home-grid dashboard-menu">
       <button class="home-action compact-action" onclick="openSchoolSummaryReport()"><strong>School Discipline Summary</strong><span>School-wide totals, common offences and class comparisons.</span></button>
       <button class="home-action compact-action" onclick="openClassHistorySetup()"><strong>Class Report</strong><span>Create a class summary or full-details report.</span></button>
+      <button class="home-action compact-action" onclick="openPointsPerClassReport()"><strong>Points per Class</strong><span>Compare demerit-point totals for every class in a selected period.</span></button>
       <button class="home-action compact-action" onclick="openLearnerReport()"><strong>Learner Discipline Report</strong><span>Search a learner and print the complete discipline record.</span></button>
       <button class="home-action compact-action" onclick="openDetentionReport()"><strong>Detention Report</strong><span>View detention currently due and completed sessions.</span></button>
     </div><div class="btn-row no-print"><button class="btn secondary" onclick="appBack()">Back</button></div></div>`);
@@ -2092,8 +2257,37 @@
       <div class="report-stat-grid"><div class="report-stat"><strong>${filtered.length}</strong><span>Incidents</span></div><div class="report-stat"><strong>${points}</strong><span>Demerit points</span></div><div class="report-stat"><strong>${learnersCount}</strong><span>Learners involved</span></div><div class="report-stat"><strong>${pending}</strong><span>Awaiting HOD response</span></div></div>
       <h3>Most Common Offences</h3>${simpleTable_(['Offence','Incidents'], offencesList.slice(0,10).map(function(row) { return [row.code + ': ' + row.label,row.count]; }))}
       <h3>Incidents per Class</h3>${simpleTable_(['Class','Incidents'], classRows.map(function(className) { return [className,classes[className]]; }))}
-      <h3>Current Intervention Status</h3>${simpleTable_(['Status','Learners'], [['High Risk (30–39 active points)',((currentHodDashboard && currentHodDashboard.highRiskLearners) || []).length],['Detention Due (40+ active points)',((currentHodDashboard && currentHodDashboard.detentionDue) || []).length]])}
+      <h3>Current Intervention Status</h3>${simpleTable_(['Status','Learners'], [['High Risk (31+ lifetime points)',((currentHodDashboard && currentHodDashboard.highRiskLearners) || []).length],['Detention Due (outstanding milestones)',((currentHodDashboard && currentHodDashboard.detentionDue) || []).length]])}
       <div class="btn-row no-print"><button class="btn" onclick="window.print()">Save to PDF</button><button class="btn secondary" onclick="appBack()">Back</button></div></div>`);
+  }
+
+  function openPointsPerClassReport() {
+    setScreenContext('hod-points-per-class-report', openReportsHub);
+    const bounds = reportingBounds_(pointsPerClassPeriod);
+    const allClasses = (appClasses || []).slice();
+    const classPoints = {};
+    const classIncidents = {};
+    ((currentHodDashboard && currentHodDashboard.allIncidents) || []).forEach(function(entry) {
+      if (entry.dateOccurredISO < bounds.start || entry.dateOccurredISO > bounds.end) return;
+      const className = String(entry.className || 'Unknown');
+      classPoints[className] = (classPoints[className] || 0) + Number(entry.demeritPoints || 0);
+      classIncidents[className] = (classIncidents[className] || 0) + 1;
+    });
+    const names = Array.from(new Set(allClasses.concat(Object.keys(classPoints)))).sort(function(a,b) {
+      const pointDifference = Number(classPoints[b] || 0) - Number(classPoints[a] || 0);
+      return pointDifference || String(a).localeCompare(String(b), undefined, {numeric:true});
+    });
+    const totalPoints = Object.keys(classPoints).reduce(function(total, className) { return total + Number(classPoints[className] || 0); }, 0);
+    render(`<div class="card">${reportHeading_('Points per Class', {period:pointsPerClassPeriod,grade:'',className:'',offenceCode:''})}
+      <div class="no-print"><div class="filter-panel"><div><label for="pointsClassPeriod">Incident occurrence date</label><select id="pointsClassPeriod" onchange="applyPointsPerClassPeriod(this.value)">${periodOptions_(pointsPerClassPeriod)}</select></div></div></div>
+      <p class="filter-summary">${escapeHtml(bounds.label)} · ${totalPoints} demerit point${totalPoints === 1 ? '' : 's'} across all classes. Classes are listed highest total first.</p>
+      ${simpleTable_(['Class','Demerit Points','Incidents'], names.map(function(className) { return [className, Number(classPoints[className] || 0), Number(classIncidents[className] || 0)]; }))}
+      <div class="btn-row no-print"><button class="btn" onclick="window.print()">Save to PDF / Print</button><button class="btn secondary" onclick="appBack()">Back</button></div></div>`);
+  }
+
+  function applyPointsPerClassPeriod(value) {
+    pointsPerClassPeriod = String(value || 'term');
+    openPointsPerClassReport();
   }
 
   function openLearnerReport() {
@@ -2109,8 +2303,8 @@
     const due = (data.detentionDue || []).filter(function(row) { return !selectedClass || row.className === selectedClass; });
     const completed = (data.completedDetentions || []).filter(function(row) { return row.dateCompletedISO >= bounds.start && row.dateCompletedISO <= bounds.end && (!selectedClass || row.className === selectedClass); });
     render(`<div class="card">${reportHeading_('Detention Report', reportFilter)}<div class="no-print"><div class="filter-panel"><div><label for="reportPeriod">Period</label><select id="reportPeriod">${periodOptions_(reportFilter.period)}</select></div><div><label for="reportClass">Class</label><select id="reportClass"><option value="">All Classes</option>${classOptions_(reportFilter.className)}</select></div></div><div class="btn-row"><button class="btn" onclick="applyReportFilters('detention')">Apply Filters</button><button class="btn secondary" onclick="resetReportFilters('detention')">Reset Filters</button></div></div><p class="filter-summary">${escapeHtml(filterSummary_({period:reportFilter.period,grade:'',className:reportFilter.className,offenceCode:''}))}</p>
-      <h3>Currently Due</h3>${simpleTable_(['Learner','Class','Active Points','Lifetime Points'], due.map(function(row) { return [row.surname + ', ' + row.name,row.className,row.activeDemeritBalance,row.lifetimeDemeritTotal]; }))}
-      <h3>Completed During Selected Period</h3>${simpleTable_(['Date','Learner','Class','Points Served','Completed By'], completed.map(function(row) { return [row.dateCompleted,row.learnerName,row.className,row.pointsServed,row.completedByName]; }))}
+      <h3>Currently Due</h3>${simpleTable_(['Learner','Class','Lifetime Points','Milestones Due','Next Milestone'], due.map(function(row) { return [row.surname + ', ' + row.name,row.className,row.lifetimeDemeritTotal,row.detentionsCurrentlyDue,row.nextOutstandingDetentionThreshold || row.nextDetentionThreshold]; }))}
+      <h3>Completed During Selected Period</h3>${simpleTable_(['Date','Learner','Class','Milestone','Completed By'], completed.map(function(row) { return [row.dateCompleted,row.learnerName,row.className,(row.triggerPoints || 40) + ' points',row.completedByName]; }))}
       <div class="btn-row no-print"><button class="btn" onclick="window.print()">Save to PDF</button><button class="btn secondary" onclick="appBack()">Back</button></div></div>`);
   }
 
@@ -2253,9 +2447,9 @@
         </div>
         <div class="dashboard-row-side">
           <span class="points-badge">Last 7 days: ${Number(learner.last7DaysDemeritTotal || 0)} pts</span><br>
-          <span class="pill" style="display:inline-block;margin-top:7px">Active balance: <strong>${Number(learner.activeDemeritBalance ?? learner.runningDemeritTotal ?? 0)}</strong></span><br>
           <span class="pill" style="display:inline-block;margin-top:7px">Lifetime points: <strong>${Number(learner.lifetimeDemeritTotal ?? learner.runningDemeritTotal ?? 0)}</strong></span><br>
           ${Number(learner.detentionsCompleted || 0) ? `<span class="pill" style="display:inline-block;margin-top:7px">Detentions completed: <strong>${Number(learner.detentionsCompleted || 0)}</strong></span><br>` : ''}
+          ${Number(learner.detentionsCurrentlyDue || 0) ? `<span class="pill" style="display:inline-block;margin-top:7px">Detention milestone${Number(learner.detentionsCurrentlyDue) === 1 ? '' : 's'} due: <strong>${Number(learner.detentionsCurrentlyDue)}</strong></span><br>` : `<span class="pill" style="display:inline-block;margin-top:7px">Next detention: <strong>${Number(learner.nextDetentionThreshold || 40)} points</strong></span><br>`}
           <span class="status ${statusClass}" style="display:inline-block;margin-top:7px">${escapeHtml(learner.disciplineStatus)}</span>
           ${includeHistory ? `<br><button class="btn secondary" style="margin-top:8px" onclick="openHistory('${jsString(learner.learnerID)}')">History</button>` : ''}
           ${allowDetentionCompletion ? `<br><button class="btn success" style="margin-top:8px" onclick="openDetentionCompletion('${jsString(learner.learnerID)}')">Mark Detention Completed</button>` : ''}
@@ -2279,9 +2473,9 @@
           <strong>${escapeHtml(summary.surname)}, ${escapeHtml(summary.name)}</strong><br>
           <span>${escapeHtml(summary.className)}</span><br>
           <span class="pill" style="display:inline-block;margin-top:8px">Lifetime points: <strong>${Number(summary.lifetimeDemeritTotal || 0)}</strong></span>
-          <span class="pill" style="display:inline-block;margin-top:8px">Active balance: <strong>${Number(summary.activeDemeritBalance || 0)}</strong></span>
+          <span class="pill" style="display:inline-block;margin-top:8px">Outstanding milestones: <strong>${Number(summary.detentionsCurrentlyDue || 0)}</strong></span>
         </div>
-        <div class="notice info">One completed detention serves 40 active points. Lifetime incident points remain unchanged and any excess points carry forward.</div>
+        <div class="notice info">This marks the <strong>${Number(summary.nextOutstandingDetentionThreshold || summary.nextDetentionThreshold || 40)}-point detention milestone</strong> as completed. Lifetime incident points remain unchanged.</div>
         <div id="detentionNotice"></div>
         <label for="detentionDate">Date completed</label>
         <input id="detentionDate" type="date" value="${localDateISO()}">
@@ -2306,7 +2500,7 @@
     }
     appConfirm({
       title: 'Complete Detention',
-      message: 'Confirm that this learner completed one detention session. Forty active points will be served and the lifetime incident history will remain unchanged.',
+      message: 'Confirm that this learner completed the next outstanding detention milestone. The lifetime incident history and points remain unchanged.',
       confirmLabel: 'Mark Completed'
     }).then(function(confirmed) {
       if (!confirmed) return;
@@ -2326,8 +2520,8 @@
             <div class="notice success"><strong>${escapeHtml(result.message || 'Detention marked as completed.')}</strong></div>
             <div class="summary-box">
               <span class="pill">Lifetime points: <strong>${Number(result.lifetimeDemeritTotal || 0)}</strong></span>
-              <span class="pill">Points served: <strong>${Number(result.detentionPointsServed || 0)}</strong></span>
-              <span class="pill">Active balance: <strong>${Number(result.activeDemeritBalance || 0)}</strong></span>
+              <span class="pill">Milestone completed: <strong>${Number(result.detentionMilestoneCompleted || 0)} points</strong></span>
+              <span class="pill">Still due: <strong>${Number(result.detentionsCurrentlyDue || 0)}</strong></span>
             </div>
             <div class="btn-row"><button class="btn" onclick="openHodDashboard()">Return to HOD Dashboard</button><button class="btn secondary" onclick="goHome()">Home</button></div>
           </div>
@@ -3712,7 +3906,7 @@
                 <div class="dashboard-row-side">
                   <span class="points-badge">+${Number(item.demeritPoints || 0)} pts</span><br>
                   <span class="pill" style="display:inline-block;margin-top:7px">Lifetime: <strong>${Number(item.runningDemeritTotal || 0)}</strong></span><br>
-                  <span class="pill" style="display:inline-block;margin-top:7px">Active balance: <strong>${Number(item.activeDemeritBalance ?? item.runningDemeritTotal ?? 0)}</strong></span><br>
+                  ${Number(item.detentionsCurrentlyDue || 0) ? `<span class="pill" style="display:inline-block;margin-top:7px">Detention milestones due: <strong>${Number(item.detentionsCurrentlyDue)}</strong></span><br>` : `<span class="pill" style="display:inline-block;margin-top:7px">Next detention: <strong>${Number(item.nextDetentionThreshold || 40)} points</strong></span><br>`}
                   <span class="status ${item.disciplineStatus === 'Detention Due' ? 'detention' : 'clear'}" style="display:inline-block;margin-top:7px">${escapeHtml(item.disciplineStatus || '')}</span>
                 </div>
               </div>
@@ -3785,6 +3979,7 @@
     const learner = currentHistory.learner;
     const all = currentHistory.entries || currentHistory.incidents || [];
     const detentions = currentHistory.detentions || [];
+    const parentContacts = currentHistory.parentContacts || [];
 
     const cats = [...new Set(
       all.map(function(x) {
@@ -3806,9 +4001,9 @@
           <strong>${escapeHtml(learner.surname)}, ${escapeHtml(learner.name)}</strong><br>
           <span>Class ${escapeHtml(learner.className)}</span><br>
           <span class="pill" style="display:inline-block;margin-top:8px">Lifetime points: <strong>${Number(currentHistory.lifetimeDemeritTotal || currentHistory.runningDemeritTotal || 0)}</strong></span>
-          <span class="pill" style="display:inline-block;margin-top:8px">Detention points served: <strong>${Number(currentHistory.detentionPointsServed || 0)}</strong></span>
-          <span class="points-badge" style="margin-top:8px">Active balance: ${Number(currentHistory.activeDemeritBalance || 0)} points</span>
+          <span class="points-badge" style="margin-top:8px">Current lifetime total: ${Number(currentHistory.lifetimeDemeritTotal || currentHistory.runningDemeritTotal || 0)} points</span>
           <span class="pill" style="display:inline-block;margin-top:8px">Detentions completed: <strong>${Number(currentHistory.detentionsCompleted || 0)}</strong></span>
+          ${Number(currentHistory.detentionsCurrentlyDue || 0) ? `<span class="pill" style="display:inline-block;margin-top:8px">Detention milestone${Number(currentHistory.detentionsCurrentlyDue) === 1 ? '' : 's'} due: <strong>${Number(currentHistory.detentionsCurrentlyDue)}</strong></span>` : `<span class="pill" style="display:inline-block;margin-top:8px">Next detention milestone: <strong>${Number(currentHistory.nextDetentionThreshold || 40)} points</strong></span>`}
           <span class="status ${currentHistory.disciplineStatus === 'Detention Due' ? 'detention' : 'clear'}" style="display:inline-block;margin-top:8px">${escapeHtml(currentHistory.disciplineStatus || '')}</span>
         </div>
 
@@ -3844,10 +4039,22 @@
         <div id="historyList"></div>
 
         <hr class="section-line">
+        <h3>Parent Contact Follow-up</h3>
+        ${parentContacts.length ? parentContacts.map(function(item) {
+          return `<div class="incident">
+            <div class="incident-top"><div class="incident-date">${escapeHtml(item.contactDate || '')}</div><span class="status ${item.outcome === 'Parent Contacted' ? 'clear' : 'inactive'}">${escapeHtml(item.outcome || '')}</span></div>
+            <p><strong>${escapeHtml(item.contactMethod || '')}</strong></p>
+            ${item.note ? `<p>${escapeHtml(item.note)}</p>` : ''}
+            <small>Recorded by: ${escapeHtml(item.recordedByName || item.recordedBy || '')}</small><br>
+            <small>Entry recorded: ${escapeHtml(item.recordedAt || '')}</small>
+          </div>`;
+        }).join('') : '<p class="muted">No HOD parent-contact follow-up is recorded.</p>'}
+
+        <hr class="section-line">
         <h3>Completed Detentions</h3>
         ${detentions.length ? detentions.map(function(item) {
           return `<div class="incident">
-            <div class="incident-top"><div class="incident-date">${escapeHtml(item.dateCompleted || '')}</div><span class="points-badge">${Number(item.pointsServed || 40)} pts served</span></div>
+            <div class="incident-top"><div class="incident-date">${escapeHtml(item.dateCompleted || '')}</div><span class="points-badge">${Number(item.triggerPoints || 40)}-point milestone</span></div>
             <p><strong>Detention completed</strong></p>
             ${item.notes ? `<p>${escapeHtml(item.notes)}</p>` : ''}
             <small>Marked by: ${escapeHtml(item.completedByName || item.completedBy || '')}</small><br>
