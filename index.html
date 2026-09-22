@@ -576,7 +576,7 @@
         <p>Open this page in <strong>Safari</strong>, tap <strong>Share</strong> (the square with an upward arrow), choose <strong>Add to Home Screen</strong>, then tap <strong>Add</strong>.</p>
       </div>
 
-      <div class="version-footer">SCPS Discipline App · v0.95b Alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></div>
+      <div class="version-footer">SCPS Discipline App · v0.96a Alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></div>
     </div>
   </section>
 
@@ -584,7 +584,7 @@
     <img src="icon-192.png" alt="SCPS logo">
 
     <div class="header-title">
-      <h1>SCPS Discipline App <span class="header-version">v0.95b Alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></span></h1>
+      <h1>SCPS Discipline App <span class="header-version">v0.96a Alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></span></h1>
       <p>Sterkspruit Christian Private School</p>
     </div>
 
@@ -626,14 +626,14 @@
         Only use “Keep me signed in” on a private device that you control.
       </p>
 
-      <div class="version-footer">SCPS Discipline App · v0.95b Alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></div>
+      <div class="version-footer">SCPS Discipline App · v0.96a Alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></div>
     </section>
 
     <section id="appView" class="hidden"></section>
   </main>
 
 <script>
-  const APP_VERSION = 'v0.95b Alpha';
+  const APP_VERSION = 'v0.96a Alpha';
 
   let sessionToken = '';
   let rememberedToken = '';
@@ -656,10 +656,13 @@
   let currentClassHistory = null;
   let currentHistory = null;
   let currentTeacherDashboard = null;
+  let currentTeacherEntryHistory = null;
   let currentHodDashboard = null;
+  let hodIncidentCache = {};
+  let hodAnalyticsCache = {};
+  let detentionReportCache = {};
+  let lastApiTiming = null;
   let currentHodView = '';
-  let currentTrendView = '';
-  let currentTrendIncidents = [];
   let classHistoryReturnToReports = false;
   let trendFilter = {period:'7', grade:'', className:'', offenceCode:''};
   let reportFilter = {period:'7', grade:'', className:'', offenceCode:''};
@@ -693,6 +696,16 @@
   const REMOVE_INCIDENT_ACTION = 'Remove Incident — Entered in Error';
 
   const VERSION_HISTORY = [
+    {
+      key:'v096a', version:'v0.96a Alpha', summary:'Performance, smaller data loads and system diagnostics',
+      changes:[
+        'Stopped the HOD Dashboard from downloading the full incident history on every visit.',
+        'Changed incident lists, trend graphs and reports to load only the selected date range when opened.',
+        'Reduced repeated Teachers-sheet reads with a short-lived directory cache that is cleared after account changes.',
+        'Added an Admin-only System Diagnostics screen with schema, row-count, cache and response-time checks.',
+        'Kept the existing screens, permissions, security model, detention logic and historical Sheet records unchanged.'
+      ]
+    },
     {
       key:'v095b', version:'v0.95b Alpha', summary:'Reporting refinement, parent-contact follow-up and detention milestones',
       changes:[
@@ -822,6 +835,7 @@
   }
 
   async function apiCallAtBase(baseUrl, action, data) {
+    const startedAt = performance.now();
     const controller = new AbortController();
     const timer = setTimeout(function() {
       controller.abort();
@@ -842,6 +856,13 @@
         cache: 'no-store',
         signal: controller.signal
       });
+      lastApiTiming = {
+        action: action,
+        browserMs: Math.round(performance.now() - startedAt),
+        upstreamMs: Number(response.headers.get('X-SCPS-Upstream-Ms') || 0),
+        attempts: Number(response.headers.get('X-SCPS-Upstream-Attempts') || 1),
+        measuredAt: new Date().toISOString()
+      };
 
       let payload;
       try {
@@ -1195,7 +1216,11 @@
     selectedOffenceCode = '';
     currentHistory = null;
     currentTeacherDashboard = null;
+    currentTeacherEntryHistory = null;
     currentHodDashboard = null;
+    hodIncidentCache = {};
+    hodAnalyticsCache = {};
+    detentionReportCache = {};
     currentHodView = '';
     currentClassHistory = null;
     multiLearnerMode = false;
@@ -1240,6 +1265,10 @@
         <button class="home-action" onclick="openManageUsers()">
           <strong>Manage Users</strong>
           <span>Add users, assign roles, reset PINs and activate or deactivate accounts.</span>
+        </button>
+        <button class="home-action" onclick="openSystemDiagnostics()">
+          <strong>System Diagnostics</strong>
+          <span>Check connection timing, Sheet readiness and optimisation caches.</span>
         </button>
       `;
     }
@@ -1443,7 +1472,7 @@
             <span>Points recorded in the last 7 days</span>
           </div>
           <div class="stat-card">
-            <strong>${(data.allEntries || []).length}</strong>
+            <strong>${Number(data.totalSavedEntryCount || 0)}</strong>
             <span>Total saved entries</span>
           </div>
           <button class="stat-card" onclick="openMyPendingHodEntries()">
@@ -1470,16 +1499,20 @@
 
   function openMyEntryHistory() {
     setScreenContext('teacher-history', renderTeacherDashboard);
-    const entries = (currentTeacherDashboard && currentTeacherDashboard.allEntries) || [];
     render(`
       <div class="card">
         <div class="crumbs">Teacher Dashboard · History</div>
         <h2>My History</h2>
-        <p class="muted">${entries.length} saved entr${entries.length === 1 ? 'y' : 'ies'}, latest first.</p>
-        ${entries.map(function(entry) { return entryCard(entry, false); }).join('') || '<p class="muted">You have not saved any entries.</p>'}
-        <div class="btn-row no-print"><button class="btn secondary" onclick="appBack()">Back</button></div>
+        <p><span class="spinner"></span>Loading your complete history…</p>
       </div>
     `);
+    apiCall('getTeacherEntryHistory', {sessionToken: sessionToken})
+      .then(function(data) {
+        currentTeacherEntryHistory = data;
+        const entries = data.entries || [];
+        render(`<div class="card"><div class="crumbs">Teacher Dashboard · History</div><h2>My History</h2><p class="muted">${entries.length} saved entr${entries.length === 1 ? 'y' : 'ies'}, latest first.</p>${entries.map(function(entry) { return entryCard(entry, false); }).join('') || '<p class="muted">You have not saved any entries.</p>'}<div class="btn-row no-print"><button class="btn secondary" onclick="appBack()">Back</button></div></div>`);
+      })
+      .catch(handleServerFailure);
   }
 
   function openMyPendingHodEntries() {
@@ -1687,8 +1720,6 @@
     setScreenContext('hod-dashboard', showHome);
     const data = currentHodDashboard || {};
     const detentionDue = data.detentionDue || [];
-    const recent = data.recentIncidents || [];
-    const all = data.allIncidents || [];
 
     render(`
       <div class="card">
@@ -1701,7 +1732,7 @@
             <span>Detention Due</span>
           </div>
           <div class="stat-card">
-            <strong>${recent.length}</strong>
+            <strong>${Number(data.recentIncidentCount || 0)}</strong>
             <span>Incidents in the last 7 days</span>
           </div>
           <div class="stat-card">
@@ -1737,7 +1768,7 @@
           </button>
           <button class="home-action compact-action" onclick="openHodAllIncidents()">
             <strong>All Incidents</strong>
-            <span>All ${all.length} incidents, latest first, with a date filter.</span>
+            <span>${Number(data.allIncidentCount || 0)} active incidents, with a date filter.</span>
           </button>
           <button class="home-action compact-action" onclick="openDisciplineTrends()">
             <strong>Discipline Trends</strong>
@@ -1793,10 +1824,8 @@
   }
 
   function highRiskLearnerRow(learner) {
-    const all = (currentHodDashboard && currentHodDashboard.allIncidents) || [];
-    const own = all.filter(function(entry) { return entry.learnerID === learner.learnerID; });
-    const recentCount = own.filter(function(entry) { return isDateWithinDays(entry.dateOccurredISO, 7); }).length;
-    const latest = own[0] || null;
+    const recentCount = Number(learner.last7DaysIncidentCount || 0);
+    const latest = learner.latestIncident || null;
     const lifetime = Number(learner.lifetimeDemeritTotal || learner.runningDemeritTotal || 0);
     return `
       <div class="dashboard-row">
@@ -1860,22 +1889,38 @@
   function openHodRecentIncidents() {
     setScreenContext('hod-recent-incidents', renderHodDashboard);
     currentHodView = 'recent';
-    const incidents = hodFilteredIncidents_(hodRecentPeriod);
     render(`
       <div class="card">
         <div class="crumbs">HOD Dashboard · Recent Incidents</div>
         <h2>Recent Incidents</h2>
         <div class="filter-panel no-print"><div><label for="hodRecentPeriod">Incident occurrence date</label><select id="hodRecentPeriod" onchange="applyHodRecentPeriod(this.value)">${periodOptions_(hodRecentPeriod)}</select></div></div>
-        <p class="muted">School-wide incidents for <strong>${escapeHtml(reportingBounds_(hodRecentPeriod).label)}</strong>: <strong>${incidents.length}</strong></p>
-        ${incidents.map(function(entry) { return incidentCard(entry, true); }).join('') || '<p class="muted">No incidents match this period.</p>'}
+        <div id="hodRecentResults"><p><span class="spinner"></span>Loading ${escapeHtml(reportingBounds_(hodRecentPeriod).label.toLowerCase())}…</p></div>
         <div class="btn-row no-print"><button class="btn secondary" onclick="appBack()">Back</button></div>
       </div>
     `);
+    loadHodIncidents_(hodRecentPeriod).then(function(incidents) {
+      const target = document.getElementById('hodRecentResults');
+      if (!target || currentScreenId !== 'hod-recent-incidents') return;
+      target.innerHTML = `<p class="muted">School-wide incidents for <strong>${escapeHtml(reportingBounds_(hodRecentPeriod).label)}</strong>: <strong>${incidents.length}</strong></p>${incidents.map(function(entry) { return incidentCard(entry, true); }).join('') || '<p class="muted">No incidents match this period.</p>'}`;
+    }).catch(handleServerFailure);
   }
 
   function applyHodRecentPeriod(value) {
     hodRecentPeriod = String(value || '7');
     openHodRecentIncidents();
+  }
+
+  function loadHodIncidents_(period) {
+    const bounds = reportingBounds_(period);
+    const key = [bounds.start, bounds.end].join('|');
+    if (hodIncidentCache[key]) return Promise.resolve(hodIncidentCache[key]);
+    return apiCall('getHodIncidents', {
+      sessionToken: sessionToken,
+      filter: {fromDate: bounds.start, toDate: bounds.end}
+    }).then(function(data) {
+      hodIncidentCache[key] = data.incidents || [];
+      return hodIncidentCache[key];
+    });
   }
 
   function openClassHistorySetup() {
@@ -2020,29 +2065,28 @@
         <h2>All Incidents</h2>
         <div class="filter-panel no-print"><div><label for="hodAllPeriod">Incident occurrence date</label><select id="hodAllPeriod" onchange="applyHodAllPeriod(this.value)">${periodOptions_(hodAllPeriod)}</select></div></div>
         <div id="hodAllSummary" class="summary-box"></div>
-        <div id="hodAllList"></div>
+        <div id="hodAllList"><p><span class="spinner"></span>Loading incidents…</p></div>
         <div class="btn-row no-print"><button class="btn secondary" onclick="appBack()">Back</button></div>
       </div>
     `);
-    applyHodAllPeriod(hodAllPeriod);
-  }
-
-  function hodFilteredIncidents_(period) {
-    const bounds = reportingBounds_(period);
-    return ((currentHodDashboard && currentHodDashboard.allIncidents) || []).filter(function(entry) {
-      return entry.dateOccurredISO >= bounds.start && entry.dateOccurredISO <= bounds.end;
-    });
+    loadHodAllPeriod_(hodAllPeriod);
   }
 
   function applyHodAllPeriod(value) {
     hodAllPeriod = String(value || hodAllPeriod || 'year');
-    const filtered = hodFilteredIncidents_(hodAllPeriod);
+    openHodAllIncidents();
+  }
+
+  function loadHodAllPeriod_(period) {
     const summary = document.getElementById('hodAllSummary');
     const list = document.getElementById('hodAllList');
-    if (summary) summary.innerHTML = `<span class="pill"><strong>${filtered.length}</strong> incident${filtered.length === 1 ? '' : 's'} · ${escapeHtml(reportingBounds_(hodAllPeriod).label)}</span>`;
-    if (list) list.innerHTML = filtered.map(function(entry) {
-      return incidentCard(entry, true);
-    }).join('') || '<p class="muted">No incidents match this period.</p>';
+    loadHodIncidents_(period).then(function(filtered) {
+      if (currentScreenId !== 'hod-all-incidents') return;
+      if (summary) summary.innerHTML = `<span class="pill"><strong>${filtered.length}</strong> incident${filtered.length === 1 ? '' : 's'} · ${escapeHtml(reportingBounds_(period).label)}</span>`;
+      if (list) list.innerHTML = filtered.map(function(entry) {
+        return incidentCard(entry, true);
+      }).join('') || '<p class="muted">No incidents match this period.</p>';
+    }).catch(handleServerFailure);
   }
 
   /* =========================================================
@@ -2073,24 +2117,15 @@
 
   function openTrendingOffences() {
     setScreenContext('hod-trending-offences', openDisciplineTrends);
-    currentTrendView = 'offences';
-    const filtered = filteredIncidents_(trendFilter);
-    currentTrendIncidents = filtered.current;
-    const currentCounts = offenceCounts_(filtered.current);
-    const previousCounts = offenceCounts_(filtered.previous);
-    const rows = Object.keys(currentCounts).map(function(code) {
-      return {
-        code:code,
-        label:currentCounts[code].label,
-        count:currentCounts[code].count,
-        previous:Number((previousCounts[code] && previousCounts[code].count) || 0)
-      };
-    }).sort(function(a,b) { return b.count - a.count || a.label.localeCompare(b.label); }).slice(0,10);
+    render(`<div class="card">${reportHeading_('Trending Offences', trendFilter)}<div class="no-print">${trendFilterPanel_('offences')}</div><p><span class="spinner"></span>Loading graph data…</p></div>`);
+    loadHodAnalytics_(trendFilter).then(function(data) {
+      if (currentScreenId !== 'hod-trending-offences') return;
+      const rows = (data.offenceRows || []).slice(0, 10);
     render(`
       <div class="card">
         ${reportHeading_('Trending Offences', trendFilter)}
         <div class="no-print">${trendFilterPanel_('offences')}</div>
-        <p class="filter-summary">${escapeHtml(filterSummary_(trendFilter))} · ${filtered.current.length} incident${filtered.current.length === 1 ? '' : 's'}</p>
+        <p class="filter-summary">${escapeHtml(filterSummary_(trendFilter))} · ${Number(data.totalIncidents || 0)} incident${Number(data.totalIncidents || 0) === 1 ? '' : 's'}</p>
         <div class="chart-card">
           <div class="chart-legend"><span class="legend-key"><span class="legend-swatch"></span>Selected period</span><span class="legend-key"><span class="legend-swatch previous"></span>Previous equivalent period</span></div>
           ${offenceTrendSvg_(rows)}
@@ -2099,25 +2134,27 @@
         ${trendDataTable_(rows)}
         <div class="btn-row no-print"><button class="btn" onclick="window.print()">Save to PDF</button><button class="btn secondary" onclick="appBack()">Back</button></div>
       </div>`);
+    }).catch(handleServerFailure);
   }
 
   function openIncidentsPerWeek() {
     setScreenContext('hod-incidents-per-week', openDisciplineTrends);
-    currentTrendView = 'weeks';
-    const filtered = filteredIncidents_(trendFilter);
-    currentTrendIncidents = filtered.current;
-    const weeks = weekCounts_(filtered.current, filtered.bounds.start, filtered.bounds.end);
-    const average = weeks.length ? (filtered.current.length / weeks.length).toFixed(1) : '0.0';
-    const peak = weeks.reduce(function(best,week) { return !best || week.count > best.count ? week : best; }, null);
-    const last = weeks[weeks.length - 1] || {count:0};
-    const prior = weeks[weeks.length - 2] || {count:0};
+    render(`<div class="card">${reportHeading_('Incidents per Week', trendFilter)}<div class="no-print">${trendFilterPanel_('weeks')}</div><p><span class="spinner"></span>Loading graph data…</p></div>`);
+    loadHodAnalytics_(trendFilter).then(function(data) {
+      if (currentScreenId !== 'hod-incidents-per-week') return;
+      const weeks = data.weeks || [];
+      const total = Number(data.totalIncidents || 0);
+      const average = weeks.length ? (total / weeks.length).toFixed(1) : '0.0';
+      const peak = weeks.reduce(function(best,week) { return !best || week.count > best.count ? week : best; }, null);
+      const last = weeks[weeks.length - 1] || {count:0};
+      const prior = weeks[weeks.length - 2] || {count:0};
     render(`
       <div class="card">
         ${reportHeading_('Incidents per Week', trendFilter)}
         <div class="no-print">${trendFilterPanel_('weeks')}</div>
         <p class="filter-summary">${escapeHtml(filterSummary_(trendFilter))}</p>
         <div class="report-stat-grid">
-          <div class="report-stat"><strong>${filtered.current.length}</strong><span>Total incidents</span></div>
+          <div class="report-stat"><strong>${total}</strong><span>Total incidents</span></div>
           <div class="report-stat"><strong>${average}</strong><span>Weekly average</span></div>
           <div class="report-stat"><strong>${peak ? peak.count : 0}</strong><span>Highest week</span></div>
           <div class="report-stat"><strong>${last.count - prior.count >= 0 ? '+' : ''}${last.count - prior.count}</strong><span>Change from previous week</span></div>
@@ -2129,6 +2166,7 @@
         ${weekDataTable_(weeks)}
         <div class="btn-row no-print"><button class="btn" onclick="window.print()">Save to PDF</button><button class="btn secondary" onclick="appBack()">Back</button></div>
       </div>`);
+    }).catch(handleServerFailure);
   }
 
   // Inline SVG is intentionally used instead of CSS/flex or canvas charts.
@@ -2197,20 +2235,6 @@
     return `<svg class="svg-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Incidents per week line graph">${grid}<line class="axis" x1="${left}" y1="${top}" x2="${left}" y2="${height - bottom}"></line><line class="axis" x1="${left}" y1="${height - bottom}" x2="${width - right}" y2="${height - bottom}"></line><polyline class="line" points="${polyline}"></polyline>${circles}${values}${labels}</svg>`;
   }
 
-  function openTrendIncidentList(type, value) {
-    const parent = currentTrendView === 'weeks' ? openIncidentsPerWeek : openTrendingOffences;
-    const parentId = currentTrendView === 'weeks' ? 'hod-incidents-per-week' : 'hod-trending-offences';
-    setScreenContext('hod-trend-incidents', parent, parentId);
-    const matches = currentTrendIncidents.filter(function(entry) {
-      if (type === 'offence') return String(entry.offenceCode || '') === value;
-      return weekStartISO_(entry.dateOccurredISO) === value;
-    });
-    const heading = type === 'offence'
-      ? ((matches[0] && matches[0].offenceLabel) || value)
-      : 'Week starting ' + formatShortDate_(value);
-    render(`<div class="card"><div class="crumbs">HOD Dashboard · Discipline Trends · Details</div><h2>${escapeHtml(heading)}</h2><p class="muted">${matches.length} matching incident${matches.length === 1 ? '' : 's'}.</p>${matches.map(function(entry) { return incidentCard(entry, true); }).join('') || '<p class="muted">No matching incidents.</p>'}<div class="btn-row no-print"><button class="btn secondary" onclick="appBack()">Back</button></div></div>`);
-  }
-
   function trendFilterPanel_(view) {
     return `<div class="filter-panel">
       <div><label for="trendPeriod">Period</label><select id="trendPeriod">${periodOptions_(trendFilter.period)}</select></div>
@@ -2244,45 +2268,39 @@
 
   function openSchoolSummaryReport() {
     setScreenContext('hod-school-report', openReportsHub);
-    const filtered = filteredIncidents_(reportFilter).current;
-    const counts = offenceCounts_(filtered);
-    const offencesList = Object.keys(counts).map(function(code) { return {code:code,label:counts[code].label,count:counts[code].count}; }).sort(function(a,b) { return b.count-a.count; });
-    const classes = {};
-    filtered.forEach(function(entry) { classes[entry.className || 'Unknown'] = (classes[entry.className || 'Unknown'] || 0) + 1; });
-    const classRows = Object.keys(classes).sort(function(a,b) { return a.localeCompare(b,undefined,{numeric:true}); });
-    const points = filtered.reduce(function(total,entry) { return total + Number(entry.demeritPoints || 0); }, 0);
-    const learnersCount = new Set(filtered.map(function(entry) { return entry.learnerID; }).filter(Boolean)).size;
-    const pending = filtered.filter(function(entry) { return !entry.hodAction || entry.hodAction === 'Pending HOD Review'; }).length;
+    render(`<div class="card">${reportHeading_('School Discipline Summary', reportFilter)}<div class="no-print">${reportFilterPanel_('school')}</div><p><span class="spinner"></span>Preparing report…</p></div>`);
+    loadHodAnalytics_(reportFilter).then(function(data) {
+      if (currentScreenId !== 'hod-school-report') return;
+      const offencesList = data.offenceRows || [];
+      const classRows = (data.classRows || []).slice().sort(function(a,b) { return String(a.className).localeCompare(String(b.className),undefined,{numeric:true}); });
     render(`<div class="card">${reportHeading_('School Discipline Summary', reportFilter)}<div class="no-print">${reportFilterPanel_('school')}</div><p class="filter-summary">${escapeHtml(filterSummary_(reportFilter))}</p>
-      <div class="report-stat-grid"><div class="report-stat"><strong>${filtered.length}</strong><span>Incidents</span></div><div class="report-stat"><strong>${points}</strong><span>Demerit points</span></div><div class="report-stat"><strong>${learnersCount}</strong><span>Learners involved</span></div><div class="report-stat"><strong>${pending}</strong><span>Awaiting HOD response</span></div></div>
+      <div class="report-stat-grid"><div class="report-stat"><strong>${Number(data.totalIncidents || 0)}</strong><span>Incidents</span></div><div class="report-stat"><strong>${Number(data.totalPoints || 0)}</strong><span>Demerit points</span></div><div class="report-stat"><strong>${Number(data.learnersInvolved || 0)}</strong><span>Learners involved</span></div><div class="report-stat"><strong>${Number(data.pendingActionCount || 0)}</strong><span>Awaiting HOD response</span></div></div>
       <h3>Most Common Offences</h3>${simpleTable_(['Offence','Incidents'], offencesList.slice(0,10).map(function(row) { return [row.code + ': ' + row.label,row.count]; }))}
-      <h3>Incidents per Class</h3>${simpleTable_(['Class','Incidents'], classRows.map(function(className) { return [className,classes[className]]; }))}
+      <h3>Incidents per Class</h3>${simpleTable_(['Class','Incidents'], classRows.map(function(row) { return [row.className,row.incidents]; }))}
       <h3>Current Intervention Status</h3>${simpleTable_(['Status','Learners'], [['High Risk (31+ lifetime points)',((currentHodDashboard && currentHodDashboard.highRiskLearners) || []).length],['Detention Due (outstanding milestones)',((currentHodDashboard && currentHodDashboard.detentionDue) || []).length]])}
       <div class="btn-row no-print"><button class="btn" onclick="window.print()">Save to PDF</button><button class="btn secondary" onclick="appBack()">Back</button></div></div>`);
+    }).catch(handleServerFailure);
   }
 
   function openPointsPerClassReport() {
     setScreenContext('hod-points-per-class-report', openReportsHub);
-    const bounds = reportingBounds_(pointsPerClassPeriod);
-    const allClasses = (appClasses || []).slice();
-    const classPoints = {};
-    const classIncidents = {};
-    ((currentHodDashboard && currentHodDashboard.allIncidents) || []).forEach(function(entry) {
-      if (entry.dateOccurredISO < bounds.start || entry.dateOccurredISO > bounds.end) return;
-      const className = String(entry.className || 'Unknown');
-      classPoints[className] = (classPoints[className] || 0) + Number(entry.demeritPoints || 0);
-      classIncidents[className] = (classIncidents[className] || 0) + 1;
-    });
-    const names = Array.from(new Set(allClasses.concat(Object.keys(classPoints)))).sort(function(a,b) {
-      const pointDifference = Number(classPoints[b] || 0) - Number(classPoints[a] || 0);
-      return pointDifference || String(a).localeCompare(String(b), undefined, {numeric:true});
-    });
-    const totalPoints = Object.keys(classPoints).reduce(function(total, className) { return total + Number(classPoints[className] || 0); }, 0);
+    const filter = {period:pointsPerClassPeriod,grade:'',className:'',offenceCode:''};
+    render(`<div class="card">${reportHeading_('Points per Class', filter)}<div class="no-print"><div class="filter-panel"><div><label for="pointsClassPeriod">Incident occurrence date</label><select id="pointsClassPeriod" onchange="applyPointsPerClassPeriod(this.value)">${periodOptions_(pointsPerClassPeriod)}</select></div></div></div><p><span class="spinner"></span>Preparing class totals…</p></div>`);
+    loadHodAnalytics_(filter).then(function(data) {
+      if (currentScreenId !== 'hod-points-per-class-report') return;
+      const byClass = {};
+      (data.classRows || []).forEach(function(row) { byClass[row.className] = row; });
+      const names = Array.from(new Set((appClasses || []).concat(Object.keys(byClass)))).sort(function(a,b) {
+        const pointDifference = Number((byClass[b] && byClass[b].points) || 0) - Number((byClass[a] && byClass[a].points) || 0);
+        return pointDifference || String(a).localeCompare(String(b), undefined, {numeric:true});
+      });
+      const totalPoints = Number(data.totalPoints || 0);
     render(`<div class="card">${reportHeading_('Points per Class', {period:pointsPerClassPeriod,grade:'',className:'',offenceCode:''})}
       <div class="no-print"><div class="filter-panel"><div><label for="pointsClassPeriod">Incident occurrence date</label><select id="pointsClassPeriod" onchange="applyPointsPerClassPeriod(this.value)">${periodOptions_(pointsPerClassPeriod)}</select></div></div></div>
       <p class="filter-summary">${escapeHtml(bounds.label)} · ${totalPoints} demerit point${totalPoints === 1 ? '' : 's'} across all classes. Classes are listed highest total first.</p>
-      ${simpleTable_(['Class','Demerit Points','Incidents'], names.map(function(className) { return [className, Number(classPoints[className] || 0), Number(classIncidents[className] || 0)]; }))}
+      ${simpleTable_(['Class','Demerit Points','Incidents'], names.map(function(className) { const row = byClass[className] || {}; return [className, Number(row.points || 0), Number(row.incidents || 0)]; }))}
       <div class="btn-row no-print"><button class="btn" onclick="window.print()">Save to PDF / Print</button><button class="btn secondary" onclick="appBack()">Back</button></div></div>`);
+    }).catch(handleServerFailure);
   }
 
   function applyPointsPerClassPeriod(value) {
@@ -2301,11 +2319,21 @@
     const data = currentHodDashboard || {};
     const selectedClass = reportFilter.className;
     const due = (data.detentionDue || []).filter(function(row) { return !selectedClass || row.className === selectedClass; });
-    const completed = (data.completedDetentions || []).filter(function(row) { return row.dateCompletedISO >= bounds.start && row.dateCompletedISO <= bounds.end && (!selectedClass || row.className === selectedClass); });
+    const cacheKey = [bounds.start, bounds.end, selectedClass].join('|');
+    render(`<div class="card">${reportHeading_('Detention Report', reportFilter)}<div class="no-print"><div class="filter-panel"><div><label for="reportPeriod">Period</label><select id="reportPeriod">${periodOptions_(reportFilter.period)}</select></div><div><label for="reportClass">Class</label><select id="reportClass"><option value="">All Classes</option>${classOptions_(reportFilter.className)}</select></div></div><div class="btn-row"><button class="btn" onclick="applyReportFilters('detention')">Apply Filters</button><button class="btn secondary" onclick="resetReportFilters('detention')">Reset Filters</button></div></div><p><span class="spinner"></span>Loading detention records…</p></div>`);
+    const pending = detentionReportCache[cacheKey]
+      ? Promise.resolve(detentionReportCache[cacheKey])
+      : apiCall('getCompletedDetentions', {sessionToken:sessionToken,filter:{fromDate:bounds.start,toDate:bounds.end,className:selectedClass}}).then(function(result) {
+          detentionReportCache[cacheKey] = result.completedDetentions || [];
+          return detentionReportCache[cacheKey];
+        });
+    pending.then(function(completed) {
+      if (currentScreenId !== 'hod-detention-report') return;
     render(`<div class="card">${reportHeading_('Detention Report', reportFilter)}<div class="no-print"><div class="filter-panel"><div><label for="reportPeriod">Period</label><select id="reportPeriod">${periodOptions_(reportFilter.period)}</select></div><div><label for="reportClass">Class</label><select id="reportClass"><option value="">All Classes</option>${classOptions_(reportFilter.className)}</select></div></div><div class="btn-row"><button class="btn" onclick="applyReportFilters('detention')">Apply Filters</button><button class="btn secondary" onclick="resetReportFilters('detention')">Reset Filters</button></div></div><p class="filter-summary">${escapeHtml(filterSummary_({period:reportFilter.period,grade:'',className:reportFilter.className,offenceCode:''}))}</p>
       <h3>Currently Due</h3>${simpleTable_(['Learner','Class','Lifetime Points','Milestones Due','Next Milestone'], due.map(function(row) { return [row.surname + ', ' + row.name,row.className,row.lifetimeDemeritTotal,row.detentionsCurrentlyDue,row.nextOutstandingDetentionThreshold || row.nextDetentionThreshold]; }))}
       <h3>Completed During Selected Period</h3>${simpleTable_(['Date','Learner','Class','Milestone','Completed By'], completed.map(function(row) { return [row.dateCompleted,row.learnerName,row.className,(row.triggerPoints || 40) + ' points',row.completedByName]; }))}
       <div class="btn-row no-print"><button class="btn" onclick="window.print()">Save to PDF</button><button class="btn secondary" onclick="appBack()">Back</button></div></div>`);
+    }).catch(handleServerFailure);
   }
 
   function reportFilterPanel_(view) {
@@ -2357,52 +2385,36 @@
     return {start:addDaysISO_(today,-(days-1)),end:today,label:days === 30 ? 'Last 30 Days' : 'Last 7 Days'};
   }
 
-  function filteredIncidents_(filter) {
+  function analyticsFilterPayload_(filter) {
     const bounds = reportingBounds_(filter.period);
-    const current = filterIncidentList_((currentHodDashboard && currentHodDashboard.allIncidents) || [], filter, bounds);
     const days = Math.max(1, daysBetweenISO_(bounds.start,bounds.end) + 1);
     const previousBounds = {start:addDaysISO_(bounds.start,-days),end:addDaysISO_(bounds.start,-1)};
-    const previous = filterIncidentList_((currentHodDashboard && currentHodDashboard.allIncidents) || [], filter, previousBounds);
-    return {current:current,previous:previous,bounds:bounds};
+    return {
+      fromDate: bounds.start,
+      toDate: bounds.end,
+      previousFromDate: previousBounds.start,
+      previousToDate: previousBounds.end,
+      grade: filter.grade || '',
+      className: filter.className || '',
+      offenceCode: filter.offenceCode || ''
+    };
   }
 
-  function filterIncidentList_(list, filter, bounds) {
-    return list.filter(function(entry) {
-      return entry.dateOccurredISO >= bounds.start && entry.dateOccurredISO <= bounds.end &&
-        (!filter.grade || String(entry.grade) === filter.grade) &&
-        (!filter.className || entry.className === filter.className) &&
-        (!filter.offenceCode || entry.offenceCode === filter.offenceCode);
+  function loadHodAnalytics_(filter) {
+    const payload = analyticsFilterPayload_(filter);
+    const key = JSON.stringify(payload);
+    if (hodAnalyticsCache[key]) return Promise.resolve(hodAnalyticsCache[key]);
+    return apiCall('getHodAnalytics', {
+      sessionToken: sessionToken,
+      filter: payload
+    }).then(function(data) {
+      data.bounds = reportingBounds_(filter.period);
+      data.weeks = (data.weeks || []).map(function(week) {
+        return {start:week.start, label:formatShortDate_(week.start), count:Number(week.count || 0)};
+      });
+      hodAnalyticsCache[key] = data;
+      return data;
     });
-  }
-
-  function offenceCounts_(list) {
-    const counts = {};
-    list.forEach(function(entry) {
-      const code = String(entry.offenceCode || 'Legacy');
-      if (!counts[code]) counts[code] = {label:entry.offenceDescription || entry.category || 'Legacy incident',count:0};
-      counts[code].count++;
-    });
-    return counts;
-  }
-
-  function trendChangeText_(current, previous) {
-    if (!previous && current) return 'New in this period · previous: 0';
-    if (!previous) return 'No change';
-    const percent = Math.round((current - previous) / previous * 100);
-    return (percent > 0 ? 'Up ' + percent + '%' : percent < 0 ? 'Down ' + Math.abs(percent) + '%' : 'No change') + ' · previous: ' + previous;
-  }
-
-  function weekCounts_(list, start, end) {
-    const map = {};
-    list.forEach(function(entry) { const key = weekStartISO_(entry.dateOccurredISO); map[key] = (map[key] || 0) + 1; });
-    const weeks = [];
-    let cursor = weekStartISO_(start);
-    const finalWeek = weekStartISO_(end);
-    while (cursor && cursor <= finalWeek && weeks.length < 60) {
-      weeks.push({start:cursor,label:formatShortDate_(cursor),count:Number(map[cursor] || 0)});
-      cursor = addDaysISO_(cursor,7);
-    }
-    return weeks;
   }
 
   function reportHeading_(title, filter) {
@@ -2515,6 +2527,7 @@
         requestID: detentionRequestID
       }).then(function(result) {
         detentionRequestID = '';
+        invalidateHodDataCaches_();
         render(`
           <div class="card">
             <div class="notice success"><strong>${escapeHtml(result.message || 'Detention marked as completed.')}</strong></div>
@@ -2721,6 +2734,7 @@
       removalReason: cleanReason
     }).then(function(result) {
       cancelIncidentRemoval();
+      invalidateHodDataCaches_();
       const historyLearnerID = currentHistory && currentHistory.learner
         ? currentHistory.learner.learnerID
         : '';
@@ -2752,21 +2766,32 @@
       entry.hodRespondedAt = result.hodRespondedAt;
     };
     if (currentHodDashboard) {
-      (currentHodDashboard.allIncidents || []).forEach(apply);
-      (currentHodDashboard.recentIncidents || []).forEach(apply);
-      if (wasPending) {
-        currentHodDashboard.pendingActionCount = Math.max(0, Number(currentHodDashboard.pendingActionCount || 0) - 1);
-      }
+      Object.keys(hodIncidentCache).forEach(function(key) {
+        (hodIncidentCache[key] || []).forEach(apply);
+      });
     }
+    hodAnalyticsCache = {};
     if (currentHistory) {
       (currentHistory.incidents || []).forEach(apply);
       (currentHistory.entries || []).forEach(apply);
     }
     if (currentTeacherDashboard) {
       (currentTeacherDashboard.recentEntries || []).forEach(apply);
-      (currentTeacherDashboard.allEntries || []).forEach(apply);
       (currentTeacherDashboard.registerRecentEntries || []).forEach(apply);
     }
+    if (currentTeacherEntryHistory) {
+      (currentTeacherEntryHistory.entries || []).forEach(apply);
+    }
+    if (currentHodDashboard && wasPending) {
+      currentHodDashboard.pendingActionCount = Math.max(0, Number(currentHodDashboard.pendingActionCount || 0) - 1);
+    }
+  }
+
+  function invalidateHodDataCaches_() {
+    currentHodDashboard = null;
+    hodIncidentCache = {};
+    hodAnalyticsCache = {};
+    detentionReportCache = {};
   }
 
   function filterHodTotals(term) {
@@ -2790,6 +2815,22 @@
   /* =========================================================
      ADMIN USER MANAGEMENT
   ========================================================= */
+
+  function openSystemDiagnostics() {
+    setScreenContext('system-diagnostics', showHome);
+    render(`<div class="card"><div class="crumbs">Admin · System Diagnostics</div><h2>System Diagnostics</h2><p><span class="spinner"></span>Running read-only checks…</p></div>`);
+    const startedAt = performance.now();
+    apiCall('getSystemDiagnostics', {sessionToken:sessionToken}).then(function(data) {
+      const roundTrip = Math.round(performance.now() - startedAt);
+      const timing = lastApiTiming || {};
+      const allReady = data.schemaStatus === 'Ready' && (data.sheets || []).every(function(sheet) { return sheet.status === 'Ready'; });
+      const rows = (data.sheets || []).map(function(sheet) {
+        return [sheet.name, sheet.status, sheet.dataRows, sheet.columns];
+      });
+      const cache = data.cacheStatus || {};
+      render(`<div class="card"><div class="crumbs">Admin · System Diagnostics</div><h2>System Diagnostics</h2><div class="notice ${allReady ? 'success' : 'error'}"><strong>${allReady ? 'Core checks passed.' : 'One or more checks need attention.'}</strong><br>${escapeHtml(data.schemaMessage || '')}</div><div class="report-stat-grid"><div class="report-stat"><strong>${roundTrip} ms</strong><span>Phone-to-server round trip</span></div><div class="report-stat"><strong>${Number(timing.upstreamMs || 0)} ms</strong><span>Worker-to-Apps Script</span></div><div class="report-stat"><strong>${Number(data.diagnosticDurationMs || 0)} ms</strong><span>Backend checks</span></div><div class="report-stat"><strong>${Number(timing.attempts || 1)}</strong><span>Upstream attempt${Number(timing.attempts || 1) === 1 ? '' : 's'}</span></div></div><h3>Optimisation Caches</h3>${simpleTable_(['Cache','Status'], [['Schema',cache.schema || 'Cold'],['Reference Data',cache.referenceData || 'Cold'],['Teacher Directory',cache.teacherDirectory || 'Cold'],['Reporting Settings',cache.reportingSettings || 'Cold']])}<h3>Sheet Readiness</h3>${simpleTable_(['Sheet','Status','Data Rows','Columns'], rows)}<p class="muted">This screen is read-only. It shows row counts and readiness only; it does not display learner or account data.</p><div class="btn-row"><button class="btn" onclick="openSystemDiagnostics()">Run Again</button><button class="btn secondary" onclick="appBack()">Back</button></div></div>`);
+    }).catch(handleServerFailure);
+  }
 
   function openManageUsers() {
     setScreenContext('manage-users', showHome);
@@ -4195,7 +4236,11 @@
     selectedLearnerIDs = [];
     selectedOffenceCode = '';
     currentTeacherDashboard = null;
+    currentTeacherEntryHistory = null;
     currentHodDashboard = null;
+    hodIncidentCache = {};
+    hodAnalyticsCache = {};
+    detentionReportCache = {};
     adminUsers = [];
     adminClasses = [];
 
@@ -4383,22 +4428,9 @@
     return Math.round((to.getTime() - from.getTime()) / 86400000);
   }
 
-  function weekStartISO_(iso) {
-    const date = parseLocalISO_(iso);
-    if (!date) return '';
-    const weekday = date.getDay();
-    date.setDate(date.getDate() - (weekday === 0 ? 6 : weekday - 1));
-    return toLocalISO_(date);
-  }
-
   function formatShortDate_(iso) {
     const date = parseLocalISO_(iso);
     return date ? date.toLocaleDateString(undefined,{day:'2-digit',month:'short'}) : String(iso || '');
-  }
-
-  function isDateWithinDays(iso, days) {
-    const start = addDaysISO_(localDateISO(), -(Number(days || 1) - 1));
-    return String(iso || '') >= start && String(iso || '') <= localDateISO();
   }
 
   function errorMessage(error) {
