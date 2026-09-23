@@ -1,4 +1,4 @@
-const CACHE_NAME = 'scps-discipline-v096a-alpha';
+const CACHE_NAME = 'scps-discipline-v096b-alpha';
 
 const STATIC_FILES = [
   './',

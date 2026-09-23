@@ -576,7 +576,7 @@
         <p>Open this page in <strong>Safari</strong>, tap <strong>Share</strong> (the square with an upward arrow), choose <strong>Add to Home Screen</strong>, then tap <strong>Add</strong>.</p>
       </div>
 
-      <div class="version-footer">SCPS Discipline App · v0.96a Alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></div>
+      <div class="version-footer">SCPS Discipline App · v0.96b Alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></div>
     </div>
   </section>
 
@@ -584,7 +584,7 @@
     <img src="icon-192.png" alt="SCPS logo">
 
     <div class="header-title">
-      <h1>SCPS Discipline App <span class="header-version">v0.96a Alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></span></h1>
+      <h1>SCPS Discipline App <span class="header-version">v0.96b Alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></span></h1>
       <p>Sterkspruit Christian Private School</p>
     </div>
 
@@ -626,14 +626,34 @@
         Only use “Keep me signed in” on a private device that you control.
       </p>
 
-      <div class="version-footer">SCPS Discipline App · v0.96a Alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></div>
+      <div class="version-footer">SCPS Discipline App · v0.96b Alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></div>
+    </section>
+
+    <section id="changePinView" class="card login-card hidden">
+      <div style="text-align:center;margin-bottom:16px">
+        <img src="icon-192.png" alt="SCPS logo" style="width:92px;height:92px;object-fit:contain">
+      </div>
+      <h2 style="text-align:center">Choose Your PIN</h2>
+      <p class="muted" style="text-align:center">
+        Your temporary PIN worked. Before entering the app, choose a private 4-digit PIN that only you know.
+      </p>
+      <div id="changePinNotice"></div>
+      <label for="newOwnPin">New 4-digit PIN</label>
+      <input id="newOwnPin" type="password" inputmode="numeric" autocomplete="new-password" maxlength="4" placeholder="4 digits">
+      <label for="confirmOwnPin">Confirm new PIN</label>
+      <input id="confirmOwnPin" type="password" inputmode="numeric" autocomplete="new-password" maxlength="4" placeholder="Repeat the 4 digits">
+      <button id="changePinBtn" class="btn block" onclick="submitMandatoryPinChange()">Save New PIN</button>
+      <p class="muted" style="font-size:12px;margin-top:14px">
+        Do not share your personal PIN. If you close the app now, you will be asked to complete this step next time.
+      </p>
+      <div class="version-footer">SCPS Discipline App · v0.96b Alpha <img class="personal-logo" src="jb-productions-logo.png" alt="JB Productions logo"></div>
     </section>
 
     <section id="appView" class="hidden"></section>
   </main>
 
 <script>
-  const APP_VERSION = 'v0.96a Alpha';
+  const APP_VERSION = 'v0.96b Alpha';
 
   let sessionToken = '';
   let rememberedToken = '';
@@ -670,6 +690,9 @@
   let hodAllPeriod = 'year';
   let pointsPerClassPeriod = 'term';
   let loginRequestID = '';
+  let pinChangeToken = '';
+  let pinChangeRequestID = '';
+  let pendingRememberDevice = false;
   let incidentRequestID = '';
   let observationRequestID = '';
   let detentionRequestID = '';
@@ -696,6 +719,16 @@
   const REMOVE_INCIDENT_ACTION = 'Remove Incident — Entered in Error';
 
   const VERSION_HISTORY = [
+    {
+      key:'v096b', version:'v0.96b Alpha', summary:'Mandatory first-login and reset PIN change',
+      changes:[
+        'New users sign in with a temporary 4-digit PIN and must choose a private PIN before entering the app.',
+        'Admin PIN resets require the user to choose a new PIN at the next login.',
+        'The new PIN must be exactly 4 digits and different from the temporary PIN.',
+        'Remembered-device access is created only after the mandatory PIN change is completed.',
+        'Added the Teachers MustChangePIN field while preserving all existing accounts and discipline history.'
+      ]
+    },
     {
       key:'v096a', version:'v0.96a Alpha', summary:'Performance, smaller data loads and system diagnostics',
       changes:[
@@ -1003,6 +1036,16 @@
 
   document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('continueBrowserBtn').addEventListener('click', continueInBrowser);
+    ['email','pin'].forEach(function(id) {
+      document.getElementById(id).addEventListener('keydown', function(event) {
+        if (event.key === 'Enter') login();
+      });
+    });
+    ['newOwnPin','confirmOwnPin'].forEach(function(id) {
+      document.getElementById(id).addEventListener('keydown', function(event) {
+        if (event.key === 'Enter') submitMandatoryPinChange();
+      });
+    });
 
     const showingInstallLanding = showInstallLandingIfNeeded();
 
@@ -1102,6 +1145,15 @@
       btn.disabled = false;
       btn.textContent = 'Sign In';
 
+      if (result && result.mustChangePIN) {
+        pinChangeToken = result.pinChangeToken || '';
+        pendingRememberDevice = remember;
+        currentTeacher = result.teacher || null;
+        document.getElementById('pin').value = '';
+        showMandatoryPinChange();
+        return;
+      }
+
       sessionToken = result.sessionToken;
       currentTeacher = result.teacher;
 
@@ -1125,6 +1177,84 @@
     });
   }
 
+  function showMandatoryPinChange() {
+    document.getElementById('installLanding').classList.add('hidden');
+    document.getElementById('loginView').classList.add('hidden');
+    document.getElementById('appHeader').classList.add('hidden');
+    document.getElementById('appView').classList.add('hidden');
+    document.getElementById('changePinView').classList.remove('hidden');
+    document.getElementById('newOwnPin').value = '';
+    document.getElementById('confirmOwnPin').value = '';
+    setChangePinNotice('', '');
+    setTimeout(function() { document.getElementById('newOwnPin').focus(); }, 50);
+  }
+
+  function submitMandatoryPinChange() {
+    const newPin = document.getElementById('newOwnPin').value.trim();
+    const confirmPin = document.getElementById('confirmOwnPin').value.trim();
+    if (!/^\d{4}$/.test(newPin)) {
+      setChangePinNotice('Your new PIN must contain exactly 4 digits.', 'error');
+      return;
+    }
+    if (newPin !== confirmPin) {
+      setChangePinNotice('The new PIN and confirmation do not match.', 'error');
+      return;
+    }
+    if (!pinChangeToken) {
+      forceLogin('Your PIN-change session has expired. Please sign in again.');
+      return;
+    }
+
+    const btn = document.getElementById('changePinBtn');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    setChangePinNotice('<span class="spinner"></span>Saving your new PIN…', 'info');
+    if (!pinChangeRequestID) pinChangeRequestID = makeRequestID('PIN');
+
+    apiCall('changeOwnPin', {
+      pinChangeToken: pinChangeToken,
+      newPin: newPin,
+      confirmPin: confirmPin,
+      rememberDevice: pendingRememberDevice,
+      requestID: pinChangeRequestID
+    }).then(function(result) {
+      pinChangeRequestID = '';
+      pinChangeToken = '';
+      sessionToken = result.sessionToken;
+      currentTeacher = result.teacher;
+      if (result.rememberToken) {
+        rememberedToken = result.rememberToken;
+        localStorage.setItem(REMEMBER_STORAGE_KEY, rememberedToken);
+      } else {
+        clearRememberedToken();
+      }
+      pendingRememberDevice = false;
+      btn.disabled = false;
+      btn.textContent = 'Save New PIN';
+      document.getElementById('newOwnPin').value = '';
+      document.getElementById('confirmOwnPin').value = '';
+      document.getElementById('changePinView').classList.add('hidden');
+      loadAppData();
+    }).catch(function(error) {
+      btn.disabled = false;
+      btn.textContent = 'Save New PIN';
+      setChangePinNotice(errorMessage(error), 'error');
+      if (errorMessage(error).toLowerCase().includes('expired') ||
+          errorMessage(error).toLowerCase().includes('already been changed') ||
+          errorMessage(error).toLowerCase().includes('reset again')) {
+        pinChangeToken = '';
+      }
+      if (!error || ['UPSTREAM_TIMEOUT','UPSTREAM_INVALID_RESPONSE','UPSTREAM_ERROR'].indexOf(error.code) < 0) {
+        pinChangeRequestID = '';
+      }
+    });
+  }
+
+  function setChangePinNotice(message, type) {
+    const box = document.getElementById('changePinNotice');
+    box.innerHTML = message ? `<div class="notice ${type || 'info'}">${message}</div>` : '';
+  }
+
   function loadAppData() {
     apiCall('getAppData', {
       sessionToken: sessionToken
@@ -1139,6 +1269,7 @@
       detentionThreshold = Number(data.detentionThreshold || 40);
 
       document.getElementById('loginView').classList.add('hidden');
+      document.getElementById('changePinView').classList.add('hidden');
       document.getElementById('appHeader').classList.remove('hidden');
       document.getElementById('appView').classList.remove('hidden');
 
@@ -1170,6 +1301,9 @@
     currentTeacherDashboard = null;
     currentHodDashboard = null;
     loginRequestID = '';
+    pinChangeToken = '';
+    pinChangeRequestID = '';
+    pendingRememberDevice = false;
     incidentRequestID = '';
     observationRequestID = '';
     detentionRequestID = '';
@@ -1190,6 +1324,7 @@
 
     document.getElementById('appHeader').classList.add('hidden');
     document.getElementById('appView').classList.add('hidden');
+    document.getElementById('changePinView').classList.add('hidden');
     document.getElementById('loginView').classList.remove('hidden');
 
     setLoginNotice('You have been signed out.', 'success');
@@ -2869,6 +3004,7 @@
               <div class="user-meta">
                 ${escapeHtml(roleText)}${classText}<br>
                 ${escapeHtml(u.email)}
+                ${u.mustChangePIN ? '<br><strong>Temporary PIN — change required</strong>' : ''}
               </div>
             </div>
 
@@ -2982,13 +3118,15 @@
         >
 
         ${isNew ? `
-          <label for="adminPin">PIN</label>
+          <label for="adminPin">Temporary PIN</label>
           <input
             id="adminPin"
             type="password"
             inputmode="numeric"
-            placeholder="At least 4 characters"
+            maxlength="4"
+            placeholder="Exactly 4 digits"
           >
+          <p class="muted">The user will be required to choose a different personal PIN at first login.</p>
         ` : ''}
 
         <div class="admin-grid">
@@ -3028,19 +3166,20 @@
         ${!isNew ? `
           <hr class="section-line">
 
-          <h3>PIN</h3>
+          <h3>Reset PIN</h3>
           <p class="muted">
-            The current PIN cannot be viewed. You can replace it with a new one.
+            Set a temporary 4-digit PIN. The user will be required to choose a different personal PIN at the next login.
           </p>
 
           <div class="admin-grid">
             <div>
-              <label for="adminNewPin">New PIN</label>
+              <label for="adminNewPin">Temporary PIN</label>
               <input
                 id="adminNewPin"
                 type="password"
                 inputmode="numeric"
-                placeholder="At least 4 characters"
+                maxlength="4"
+                placeholder="Exactly 4 digits"
               >
             </div>
           </div>
@@ -3106,6 +3245,11 @@
       active: document.getElementById('adminActive').checked
     };
 
+    if (isNew && !/^\d{4}$/.test(payload.pin)) {
+      showAdminNotice('The temporary PIN must contain exactly 4 digits.', 'error');
+      return;
+    }
+
     const btn = document.getElementById('adminSaveBtn');
     btn.disabled = true;
     btn.textContent = isNew ? 'Adding…' : 'Saving…';
@@ -3135,14 +3279,18 @@
     const newPin = document.getElementById('adminNewPin').value.trim();
 
     if (!newPin) {
-      showAdminNotice('Please enter the new PIN first.', 'error');
+      showAdminNotice('Please enter the temporary PIN first.', 'error');
+      return;
+    }
+    if (!/^\d{4}$/.test(newPin)) {
+      showAdminNotice('The temporary PIN must contain exactly 4 digits.', 'error');
       return;
     }
 
     appConfirm({
       title: 'Reset User PIN',
-      message: 'Reset the PIN for ' + selectedAdminUser.name + '?',
-      confirmLabel: 'Reset PIN'
+      message: 'Set this temporary PIN for ' + selectedAdminUser.name + '? The user must choose a new personal PIN at the next login.',
+      confirmLabel: 'Set Temporary PIN'
     }).then(function(confirmed) {
       if (!confirmed) return;
       apiCall('resetAdminUserPin', {
@@ -3153,6 +3301,11 @@
       .then(function(result) {
         document.getElementById('adminNewPin').value = '';
         showAdminNotice(result.message || 'PIN reset successfully.', 'success');
+        if (selectedAdminUser && selectedAdminUser.isCurrentUser) {
+          setTimeout(function() {
+            forceLogin('Your PIN was reset. Sign in with the temporary PIN, then choose a new personal PIN.');
+          }, 900);
+        }
       })
       .catch(function(error) {
         showAdminNotice(errorMessage(error), 'error');
@@ -4229,6 +4382,9 @@
 
   function forceLogin(message) {
     sessionToken = '';
+    pinChangeToken = '';
+    pinChangeRequestID = '';
+    pendingRememberDevice = false;
     currentTeacher = null;
     learners = [];
     categories = [];
@@ -4258,6 +4414,7 @@
 
     document.getElementById('appHeader').classList.add('hidden');
     document.getElementById('appView').classList.add('hidden');
+    document.getElementById('changePinView').classList.add('hidden');
     document.getElementById('loginView').classList.remove('hidden');
 
     setLoginNotice(message || 'Please sign in again.', 'error');
